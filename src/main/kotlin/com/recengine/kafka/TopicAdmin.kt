@@ -15,13 +15,13 @@ data class TopicSpec(val name: String, val partitions: Int, val replicationFacto
 
 object TopicAdmin {
 
-    private val topics = listOf(
-        TopicSpec("user-events",     partitions = 12, replicationFactor = 1),
-        TopicSpec("model-updates",   partitions = 3,  replicationFactor = 1),
-        TopicSpec("feedback-events", partitions = 6,  replicationFactor = 1)
-    )
-
     fun createTopics(cfg: KafkaConfig) {
+        val topics = listOf(
+            TopicSpec(cfg.topicEvents,   partitions = 12, replicationFactor = 1),
+            TopicSpec(cfg.topicUpdates,  partitions = 3,  replicationFactor = 1),
+            TopicSpec(cfg.topicFeedback, partitions = 6,  replicationFactor = 1)
+        )
+
         val props = Properties().apply {
             put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, cfg.bootstrapServers)
         }

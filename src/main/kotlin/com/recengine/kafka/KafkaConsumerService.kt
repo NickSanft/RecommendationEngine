@@ -20,12 +20,12 @@ private val log = KotlinLogging.logger {}
 
 class KafkaConsumerService(private val cfg: KafkaConfig, private val json: Json) {
 
-    private fun buildProperties(groupIdSuffix: String = "") = Properties().apply {
+    private fun buildProperties(groupIdSuffix: String = "", offsetReset: String = "latest") = Properties().apply {
         put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,          cfg.bootstrapServers)
         put(ConsumerConfig.GROUP_ID_CONFIG,                   cfg.groupId + groupIdSuffix)
         put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,     StringDeserializer::class.java.name)
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,   StringDeserializer::class.java.name)
-        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,          "latest")
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,          offsetReset)
         put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,         "false")
         put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG,           cfg.maxPollRecords.toString())
         put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG,         "30000")
@@ -43,8 +43,8 @@ class KafkaConsumerService(private val cfg: KafkaConfig, private val json: Json)
      *
      * The consumer is cleanly closed when the collecting coroutine is cancelled.
      */
-    fun eventFlow(topic: String, groupIdSuffix: String = ""): Flow<RecEngineEvent> = flow {
-        val consumer = KafkaConsumer<String, String>(buildProperties(groupIdSuffix))
+    fun eventFlow(topic: String, groupIdSuffix: String = "", offsetReset: String = "latest"): Flow<RecEngineEvent> = flow {
+        val consumer = KafkaConsumer<String, String>(buildProperties(groupIdSuffix, offsetReset))
         consumer.subscribe(listOf(topic))
         log.info { "Subscribed to Kafka topic: $topic (group=${cfg.groupId}$groupIdSuffix)" }
         try {
