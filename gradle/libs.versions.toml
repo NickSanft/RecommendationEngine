@@ -1,0 +1,54 @@
+[versions]
+kotlin              = "2.1.20"
+ktor                = "3.1.2"
+coroutines          = "1.8.0"
+serialization       = "1.6.3"
+lettuce             = "6.3.2.RELEASE"
+kafka               = "3.7.0"
+koin                = "3.5.6"
+micrometer          = "1.12.5"
+logback             = "1.5.3"
+kotlin-logging      = "6.0.9"
+typesafe-config     = "1.4.3"
+junit5              = "5.10.2"
+mockk               = "1.13.10"
+testcontainers      = "1.19.7"
+
+[libraries]
+ktor-server-core        = { module = "io.ktor:ktor-server-core-jvm",                     version.ref = "ktor" }
+ktor-server-netty       = { module = "io.ktor:ktor-server-netty-jvm",                    version.ref = "ktor" }
+ktor-server-content     = { module = "io.ktor:ktor-server-content-negotiation-jvm",      version.ref = "ktor" }
+ktor-serialization      = { module = "io.ktor:ktor-serialization-kotlinx-json-jvm",      version.ref = "ktor" }
+ktor-server-metrics     = { module = "io.ktor:ktor-server-metrics-micrometer-jvm",       version.ref = "ktor" }
+ktor-server-status      = { module = "io.ktor:ktor-server-status-pages-jvm",             version.ref = "ktor" }
+ktor-server-test        = { module = "io.ktor:ktor-server-test-host-jvm",                version.ref = "ktor" }
+ktor-client-cio         = { module = "io.ktor:ktor-client-cio-jvm",                      version.ref = "ktor" }
+
+coroutines-core         = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core",    version.ref = "coroutines" }
+coroutines-jdk8         = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8",    version.ref = "coroutines" }
+coroutines-test         = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test",    version.ref = "coroutines" }
+serialization-json      = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+
+lettuce-core            = { module = "io.lettuce:lettuce-core",                           version.ref = "lettuce" }
+kafka-clients           = { module = "org.apache.kafka:kafka-clients",                    version.ref = "kafka" }
+
+koin-core               = { module = "io.insert-koin:koin-core",                          version.ref = "koin" }
+koin-ktor               = { module = "io.insert-koin:koin-ktor",                          version.ref = "koin" }
+koin-logger             = { module = "io.insert-koin:koin-logger-slf4j",                  version.ref = "koin" }
+
+micrometer-prometheus   = { module = "io.micrometer:micrometer-registry-prometheus",     version.ref = "micrometer" }
+logback-classic         = { module = "ch.qos.logback:logback-classic",                   version.ref = "logback" }
+kotlin-logging          = { module = "io.github.oshai:kotlin-logging-jvm",               version.ref = "kotlin-logging" }
+typesafe-config         = { module = "com.typesafe:config",                              version.ref = "typesafe-config" }
+
+junit5-api              = { module = "org.junit.jupiter:junit-jupiter-api",               version.ref = "junit5" }
+junit5-engine           = { module = "org.junit.jupiter:junit-jupiter-engine",            version.ref = "junit5" }
+mockk                   = { module = "io.mockk:mockk",                                   version.ref = "mockk" }
+testcontainers-core     = { module = "org.testcontainers:testcontainers",                version.ref = "testcontainers" }
+testcontainers-kafka    = { module = "org.testcontainers:kafka",                          version.ref = "testcontainers" }
+testcontainers-junit5   = { module = "org.testcontainers:junit-jupiter",                 version.ref = "testcontainers" }
+
+[plugins]
+kotlin-jvm           = { id = "org.jetbrains.kotlin.jvm",                   version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization",  version.ref = "kotlin" }
+ktor                 = { id = "io.ktor.plugin",                              version = "3.1.2" }
