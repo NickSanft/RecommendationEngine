@@ -182,6 +182,66 @@
     .json-num    { color: #fbbf24; }
     .json-bool   { color: #f472b6; }
     .json-null   { color: #94a3b8; }
+
+    /* Seed controls */
+    .seed-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #seedCount {
+      width: 64px;
+      background: #1e2235;
+      border: 1px solid #2d3748;
+      color: #e2e8f0;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    #seedType {
+      background: #1e2235;
+      border: 1px solid #2d3748;
+      color: #e2e8f0;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    #seedBtn {
+      background: #3b0764;
+      border: 1px solid #7c3aed;
+      color: #d8b4fe;
+      padding: 5px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+    #seedBtn:hover:not(:disabled) { background: #4c0aad; }
+    #seedBtn:disabled { opacity: 0.5; cursor: default; }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1a1d2e;
+      border: 1px solid #2d3748;
+      border-left: 3px solid #10b981;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      max-width: 340px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.error { border-left-color: #ef4444; }
   </style>
 </head>
 <body>
@@ -200,9 +260,22 @@
     <button class="type-btn PurchaseEvent active"   onclick="toggleType('PurchaseEvent',   this)">Purchase</button>
     <button class="type-btn ImpressionEvent active" onclick="toggleType('ImpressionEvent', this)">Impression</button>
   </div>
+  <div class="seed-group">
+    <input id="seedCount" type="number" min="1" max="500" value="20">
+    <select id="seedType">
+      <option value="random">random</option>
+      <option value="click">click</option>
+      <option value="view">view</option>
+      <option value="purchase">purchase</option>
+      <option value="impression">impression</option>
+    </select>
+    <button id="seedBtn" onclick="seedEvents()">Seed</button>
+  </div>
   <button class="ctrl-btn" onclick="togglePause()" id="pauseBtn">Pause</button>
   <button class="ctrl-btn" onclick="clearFeed()">Clear</button>
 </div>
+
+<div id="toast"></div>
 
 <div id="feed">
   <div id="empty-state">
@@ -323,6 +396,41 @@
   function setStatus(cls, text) {
     statusEl.className = cls;
     statusEl.textContent = text;
+  }
+
+  // ── Seed events ──────────────────────────────────────────────────
+  async function seedEvents() {
+    const btn   = document.getElementById('seedBtn');
+    const count = Math.min(500, Math.max(1, parseInt(document.getElementById('seedCount').value) || 20));
+    const type  = document.getElementById('seedType').value;
+    btn.disabled = true;
+    btn.textContent = 'Seeding…';
+    try {
+      const res  = await fetch(`/dev/seed?count=${count}&type=${type}`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        const breakdown = Object.entries(data.types)
+          .map(([t, n]) => `${n} ${t.replace('Event', '')}`)
+          .join(', ');
+        showToast(`Seeded ${data.sent} events — ${breakdown}`, false);
+      } else {
+        showToast('Seed failed — is Kafka running?', true);
+      }
+    } catch (e) {
+      showToast('Seed request failed: ' + e.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Seed';
+    }
+  }
+
+  let toastTimer = null;
+  function showToast(msg, isError) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className   = isError ? 'error show' : 'show';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = isError ? 'error' : ''; }, 4000);
   }
 </script>
 </body>
