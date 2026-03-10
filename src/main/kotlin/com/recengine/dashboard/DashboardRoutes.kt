@@ -8,6 +8,10 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.sse.sse
 import io.ktor.sse.ServerSentEvent
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -27,10 +31,32 @@ fun Application.dashboardRoutes(broadcaster: EventBroadcaster, json: Json) {
 
         sse("/events/stream") {
             log.info { "SSE client connected" }
+
+            // Send immediately to flush HTTP response headers to the browser.
+            // Without this, Netty buffers the headers until the first real event
+            // arrives, leaving the browser's EventSource stuck in CONNECTING state.
+            send(ServerSentEvent(data = "connected", event = "ping"))
+
+            val heartbeat = flow {
+                while (true) {
+                    delay(30_000)
+                    emit(ServerSentEvent(data = "heartbeat", event = "ping"))
+                }
+            }
+
             try {
-                broadcaster.events.collect { event ->
-                    val payload = json.encodeToString(event)
-                    send(ServerSentEvent(data = payload, event = event::class.simpleName))
+                // merge serialises events from both flows through a single collect,
+                // so send() is never called concurrently.
+                merge(
+                    broadcaster.events.map { event ->
+                        ServerSentEvent(
+                            data  = json.encodeToString(event),
+                            event = event::class.simpleName,
+                        )
+                    },
+                    heartbeat,
+                ).collect { sseEvent ->
+                    send(sseEvent)
                 }
             } finally {
                 log.info { "SSE client disconnected" }
