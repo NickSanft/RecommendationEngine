@@ -40,6 +40,7 @@ dependencies {
     implementation(libs.ktor.serialization)
     implementation(libs.ktor.server.metrics)
     implementation(libs.ktor.server.status)
+    implementation(libs.ktor.server.sse)
 
     // Coroutines + Serialization
     implementation(libs.coroutines.core)
