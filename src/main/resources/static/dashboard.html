@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RecEngine — Live Event Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background: #1a1d2e;
+      border-bottom: 1px solid #2d3748;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    header h1 { font-size: 1.1rem; font-weight: 600; color: #a78bfa; }
+
+    #status {
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+    #status.connecting { background: #92400e; color: #fbbf24; }
+    #status.open       { background: #14532d; color: #4ade80; }
+    #status.closed     { background: #7f1d1d; color: #f87171; }
+    #status.paused     { background: #1e3a5f; color: #60a5fa; }
+
+    #stats { margin-left: auto; font-size: 0.8rem; color: #94a3b8; }
+
+    #controls {
+      padding: 10px 24px;
+      background: #13151f;
+      border-bottom: 1px solid #1e2235;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    #filter {
+      background: #1e2235;
+      border: 1px solid #2d3748;
+      color: #e2e8f0;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      width: 220px;
+    }
+    #filter::placeholder { color: #4a5568; }
+
+    .type-filter {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .type-btn {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      opacity: 0.45;
+      transition: opacity 0.15s;
+    }
+    .type-btn.active  { opacity: 1; }
+    .type-btn.ViewEvent       { background: #312e81; color: #a5b4fc; border-color: #4338ca; }
+    .type-btn.ClickEvent      { background: #3b0764; color: #d8b4fe; border-color: #7c3aed; }
+    .type-btn.PurchaseEvent   { background: #064e3b; color: #6ee7b7; border-color: #059669; }
+    .type-btn.ImpressionEvent { background: #1e3a5f; color: #93c5fd; border-color: #2563eb; }
+
+    .ctrl-btn {
+      background: #1e2235;
+      border: 1px solid #2d3748;
+      color: #94a3b8;
+      padding: 5px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-left: auto;
+    }
+    .ctrl-btn:hover { background: #2d3748; color: #e2e8f0; }
+
+    #feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #empty-state {
+      margin: auto;
+      text-align: center;
+      color: #4a5568;
+    }
+    #empty-state p { font-size: 0.9rem; margin-top: 8px; }
+
+    .event-card {
+      background: #1a1d2e;
+      border: 1px solid #2d3748;
+      border-left: 3px solid #6366f1;
+      border-radius: 8px;
+      padding: 12px 16px;
+      animation: slideIn 0.18s ease;
+      cursor: pointer;
+    }
+    .event-card.ViewEvent       { border-left-color: #6366f1; }
+    .event-card.ClickEvent      { border-left-color: #a855f7; }
+    .event-card.PurchaseEvent   { border-left-color: #10b981; }
+    .event-card.ImpressionEvent { border-left-color: #3b82f6; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .event-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .event-type {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .ViewEvent       .event-type { background: #312e81; color: #a5b4fc; }
+    .ClickEvent      .event-type { background: #3b0764; color: #d8b4fe; }
+    .PurchaseEvent   .event-type { background: #064e3b; color: #6ee7b7; }
+    .ImpressionEvent .event-type { background: #1e3a5f; color: #93c5fd; }
+
+    .event-user  { font-size: 0.85rem; color: #94a3b8; }
+    .event-item  { font-size: 0.82rem; color: #64748b; }
+    .event-time  { font-size: 0.75rem; color: #475569; margin-left: auto; }
+    .expand-icon { font-size: 0.75rem; color: #475569; margin-left: 6px; transition: transform 0.15s; }
+    .event-card.expanded .expand-icon { transform: rotate(90deg); }
+
+    .event-payload {
+      display: none;
+      margin-top: 10px;
+      background: #0a0c14;
+      border: 1px solid #1e2235;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: #7dd3fc;
+      white-space: pre;
+      overflow-x: auto;
+      max-height: 320px;
+    }
+    .event-card.expanded .event-payload { display: block; }
+
+    /* JSON syntax highlighting */
+    .json-key    { color: #93c5fd; }
+    .json-str    { color: #86efac; }
+    .json-num    { color: #fbbf24; }
+    .json-bool   { color: #f472b6; }
+    .json-null   { color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>RecEngine — Live Event Stream</h1>
+  <span id="status" class="connecting">connecting…</span>
+  <span id="stats">0 events</span>
+</header>
+
+<div id="controls">
+  <input id="filter" type="text" placeholder="Filter by user, item, or session…">
+  <div class="type-filter">
+    <button class="type-btn ViewEvent active"       onclick="toggleType('ViewEvent',       this)">View</button>
+    <button class="type-btn ClickEvent active"      onclick="toggleType('ClickEvent',      this)">Click</button>
+    <button class="type-btn PurchaseEvent active"   onclick="toggleType('PurchaseEvent',   this)">Purchase</button>
+    <button class="type-btn ImpressionEvent active" onclick="toggleType('ImpressionEvent', this)">Impression</button>
+  </div>
+  <button class="ctrl-btn" onclick="togglePause()" id="pauseBtn">Pause</button>
+  <button class="ctrl-btn" onclick="clearFeed()">Clear</button>
+</div>
+
+<div id="feed">
+  <div id="empty-state">
+    <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#2d3748" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0H3"/>
+    </svg>
+    <p>Waiting for events from Kafka…</p>
+  </div>
+</div>
+
+<script>
+  const feed     = document.getElementById('feed');
+  const statusEl = document.getElementById('status');
+  const statsEl  = document.getElementById('stats');
+  const filterEl = document.getElementById('filter');
+  const emptyEl  = document.getElementById('empty-state');
+
+  let total      = 0;
+  let paused     = false;
+  const MAX_CARDS = 200;
+  const hiddenTypes = new Set();
+
+  // ── SSE connection ──────────────────────────────────────────────
+  const source = new EventSource('/events/stream');
+
+  source.onopen = () => setStatus('open', 'connected');
+  source.onerror = () => {
+    if (!paused) setStatus('closed', 'reconnecting…');
+  };
+
+  // Generic fallback (shouldn't fire when named events are sent)
+  source.onmessage = (e) => handleEvent('Event', e.data);
+
+  // One listener per sealed-class subtype
+  ['ViewEvent', 'ClickEvent', 'PurchaseEvent', 'ImpressionEvent'].forEach(type => {
+    source.addEventListener(type, (e) => handleEvent(type, e.data));
+  });
+
+  // ── Event handling ───────────────────────────────────────────────
+  function handleEvent(type, rawJson) {
+    if (paused) return;
+    if (hiddenTypes.has(type)) return;
+
+    let parsed;
+    try { parsed = JSON.parse(rawJson); } catch { parsed = {}; }
+
+    const filterText = filterEl.value.toLowerCase().trim();
+    if (filterText && !rawJson.toLowerCase().includes(filterText)) return;
+
+    total++;
+    statsEl.textContent = total.toLocaleString() + ' events';
+    if (emptyEl) emptyEl.remove();
+
+    const card = document.createElement('div');
+    card.className = `event-card ${type}`;
+    card.innerHTML = `
+      <div class="event-header">
+        <span class="event-type">${type.replace('Event', '')}</span>
+        <span class="event-user">${parsed.userId || '—'}</span>
+        <span class="event-item">${itemSummary(type, parsed)}</span>
+        <span class="event-time">${new Date().toLocaleTimeString()}</span>
+        <span class="expand-icon">▶</span>
+      </div>
+      <pre class="event-payload">${highlight(JSON.stringify(parsed, null, 2))}</pre>
+    `;
+    card.addEventListener('click', () => card.classList.toggle('expanded'));
+
+    feed.insertBefore(card, feed.firstChild);
+    while (feed.children.length > MAX_CARDS) feed.removeChild(feed.lastChild);
+  }
+
+  function itemSummary(type, p) {
+    if (type === 'ImpressionEvent') return p.itemIds ? `[${p.itemIds.slice(0,3).join(', ')}${p.itemIds.length > 3 ? '…' : ''}]` : '';
+    return p.itemId ? `· ${p.itemId}` : '';
+  }
+
+  // ── JSON syntax highlighting ─────────────────────────────────────
+  function highlight(json) {
+    return escapeHtml(json)
+      .replace(/"([^"]+)"(?=\s*:)/g, '<span class="json-key">"$1"</span>')
+      .replace(/:\s*"([^"]*)"/g, ': <span class="json-str">"$1"</span>')
+      .replace(/:\s*(-?\d+\.?\d*([eE][+-]?\d+)?)/g, ': <span class="json-num">$1</span>')
+      .replace(/:\s*(true|false)/g, ': <span class="json-bool">$1</span>')
+      .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Controls ─────────────────────────────────────────────────────
+  function toggleType(type, btn) {
+    if (hiddenTypes.has(type)) {
+      hiddenTypes.delete(type);
+      btn.classList.add('active');
+    } else {
+      hiddenTypes.add(type);
+      btn.classList.remove('active');
+    }
+  }
+
+  function togglePause() {
+    paused = !paused;
+    document.getElementById('pauseBtn').textContent = paused ? 'Resume' : 'Pause';
+    setStatus(paused ? 'paused' : 'open', paused ? 'paused' : 'connected');
+  }
+
+  function clearFeed() {
+    feed.innerHTML = '';
+    total = 0;
+    statsEl.textContent = '0 events';
+  }
+
+  function setStatus(cls, text) {
+    statusEl.className = cls;
+    statusEl.textContent = text;
+  }
+</script>
+</body>
+</html>

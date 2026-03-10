@@ -1,6 +1,9 @@
 package com.recengine
 
 import com.recengine.config.AppConfig
+import com.recengine.dashboard.EventBroadcaster
+import com.recengine.dashboard.dashboardRoutes
+import com.recengine.kafka.KafkaConsumerService
 import com.recengine.kafka.KafkaProducerService
 import com.recengine.kafka.TopicAdmin
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -64,6 +67,11 @@ fun Application.module() {
             }
         }
     }
+
+    val consumerService = KafkaConsumerService(config.kafka, json)
+    val broadcaster     = EventBroadcaster(consumerService, config.kafka)
+    broadcaster.start()
+    dashboardRoutes(broadcaster, json)
 
     logger.info { "RecEngine started — Kafka=${config.kafka.bootstrapServers} Redis=${config.redis.uri}" }
 }
