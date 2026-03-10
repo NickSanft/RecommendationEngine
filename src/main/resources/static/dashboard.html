@@ -273,6 +273,7 @@
   </div>
   <button class="ctrl-btn" onclick="togglePause()" id="pauseBtn">Pause</button>
   <button class="ctrl-btn" onclick="clearFeed()">Clear</button>
+  <button class="ctrl-btn" onclick="discardAll()" title="Clear screen and discard server replay cache — events won't reappear on refresh">Discard All</button>
 </div>
 
 <div id="toast"></div>
@@ -391,6 +392,16 @@
     feed.innerHTML = '';
     total = 0;
     statsEl.textContent = '0 events';
+  }
+
+  async function discardAll() {
+    clearFeed();
+    try {
+      await fetch('/events/clear', { method: 'POST' });
+      showToast('Replay cache cleared — refresh is now clean', false);
+    } catch (e) {
+      showToast('Could not clear server cache: ' + e.message, true);
+    }
   }
 
   function setStatus(cls, text) {

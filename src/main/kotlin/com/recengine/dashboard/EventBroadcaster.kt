@@ -31,6 +31,9 @@ class EventBroadcaster(
     private val _events = MutableSharedFlow<RecEngineEvent>(replay = 50, extraBufferCapacity = 1_000)
     val events: SharedFlow<RecEngineEvent> = _events.asSharedFlow()
 
+    /** Clears the replay cache so new SSE subscribers don't receive old events. */
+    fun clearReplayCache() = _events.resetReplayCache()
+
     /** Call once at application startup (e.g. from the Ktor Application.module()). */
     fun start() {
         scope.launch {

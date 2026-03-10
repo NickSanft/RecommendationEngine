@@ -2,9 +2,12 @@ package com.recengine.dashboard
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
+import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.sse.sse
 import io.ktor.sse.ServerSentEvent
@@ -27,6 +30,11 @@ fun Application.dashboardRoutes(broadcaster: EventBroadcaster, json: Json) {
                 ?.toString(Charsets.UTF_8)
                 ?: "<h1>dashboard.html not found in classpath</h1>"
             call.respondText(html, ContentType.Text.Html)
+        }
+
+        post("/events/clear") {
+            broadcaster.clearReplayCache()
+            call.respond(HttpStatusCode.NoContent)
         }
 
         sse("/events/stream") {
