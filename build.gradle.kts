@@ -79,5 +79,7 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
-    jvmArgs("-Xmx1g")
+    // net.bytebuddy.experimental=true: lets MockK/Byte Buddy proxy classes compiled for
+    // JDK 23+ (class format 67+) even though this Byte Buddy version officially targets JDK 21.
+    jvmArgs("-Xmx1g", "-Dnet.bytebuddy.experimental=true")
 }
