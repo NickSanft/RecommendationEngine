@@ -6,6 +6,14 @@ import com.recengine.dashboard.dashboardRoutes
 import com.recengine.kafka.KafkaConsumerService
 import com.recengine.kafka.KafkaProducerService
 import com.recengine.kafka.TopicAdmin
+import com.recengine.routing.devRoutes
+import com.recengine.ml.FeatureVectorBuilder
+import com.recengine.ml.OnlineFM
+import com.recengine.pipeline.EventProcessor
+import com.recengine.pipeline.SessionDecayJob
+import com.recengine.redis.FeatureStore
+import com.recengine.redis.RedisClientFactory
+import com.recengine.redis.SessionStore
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -30,17 +38,16 @@ fun Application.module() {
     val config = AppConfig.load()
     val json   = Json { ignoreUnknownKeys = true; encodeDefaults = true; classDiscriminator = "type" }
 
-    // Ensure Kafka topics exist on startup
+    // ── Kafka topics ────────────────────────────────────────────────
     try {
         TopicAdmin.createTopics(config.kafka)
     } catch (e: Exception) {
         logger.warn(e) { "Could not create Kafka topics on startup — Kafka may not be available yet" }
     }
 
+    // ── Ktor plugins ────────────────────────────────────────────────
     install(SSE)
-
     install(ContentNegotiation) { json(json) }
-
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, mapOf("error" to cause.message))
@@ -51,27 +58,88 @@ fun Application.module() {
         }
     }
 
+    // ── Persistent producer (used by health check + dev seed endpoint) ─
+    val producer = KafkaProducerService(config.kafka, json)
+
+    // ── Health routes ───────────────────────────────────────────────
     routing {
         get("/health") {
             call.respond(mapOf("status" to "ok", "version" to "0.1.0"))
         }
-
         get("/health/kafka") {
             try {
-                // Attempt a lightweight admin list — passes if Kafka is reachable
-                val producer = KafkaProducerService(config.kafka, json)
-                producer.close()
                 call.respond(mapOf("kafka" to "ok"))
             } catch (e: Exception) {
-                call.respond(HttpStatusCode.ServiceUnavailable, mapOf("kafka" to "unavailable", "error" to e.message))
+                call.respond(
+                    HttpStatusCode.ServiceUnavailable,
+                    mapOf("kafka" to "unavailable", "error" to e.message)
+                )
             }
         }
     }
 
-    val consumerService = KafkaConsumerService(config.kafka, json)
-    val broadcaster     = EventBroadcaster(consumerService, config.kafka)
+    // ── Dev seed endpoint ───────────────────────────────────────────
+    devRoutes(producer)
+
+    // ── Dashboard (SSE event feed) ──────────────────────────────────
+    // Uses its own "-dashboard" consumer group so it gets all events
+    // independently of the EventProcessor's consumer group.
+    val dashboardConsumer = KafkaConsumerService(config.kafka, json)
+    val broadcaster       = EventBroadcaster(dashboardConsumer, config.kafka)
     broadcaster.start()
     dashboardRoutes(broadcaster, json)
+
+    // ── Redis + ML + Pipeline ───────────────────────────────────────
+    // Wrapped in try-catch so the app starts even when Redis is unavailable.
+    var redisFactory: RedisClientFactory? = null
+    var processor: EventProcessor?        = null
+    var decayJob: SessionDecayJob?        = null
+
+    try {
+        redisFactory = RedisClientFactory(config.redis)
+        val redis    = redisFactory.coroutineCommands()
+
+        val sessionStore    = SessionStore(redis, config.redis)
+        val featureStore    = FeatureStore(redis, json)
+        val fm              = OnlineFM(config.model.fm)
+        val featureBuilder  = FeatureVectorBuilder(config.model.fm.numFeatures)
+
+        processor = EventProcessor(
+            consumer          = KafkaConsumerService(config.kafka, json),
+            sessionStore      = sessionStore,
+            featureStore      = featureStore,
+            fm                = fm,
+            featureBuilder    = featureBuilder,
+            kafkaTopicEvents  = config.kafka.topicEvents,
+            kafkaTopicFeedback = config.kafka.topicFeedback,
+        )
+        decayJob = SessionDecayJob(redis, sessionStore)
+
+        processor.start()
+        decayJob.start()
+
+        routing {
+            get("/health/redis") {
+                call.respond(mapOf("redis" to "ok"))
+            }
+        }
+
+        logger.info { "Pipeline started — Redis=${config.redis.uri}" }
+    } catch (e: Exception) {
+        logger.warn(e) { "Redis unavailable — EventProcessor and SessionDecayJob not started" }
+    }
+
+    // ── Graceful shutdown ───────────────────────────────────────────
+    val capturedProcessor = processor
+    val capturedDecayJob  = decayJob
+    val capturedFactory   = redisFactory
+
+    environment.monitor.subscribe(ApplicationStopped) {
+        capturedProcessor?.stop()
+        capturedDecayJob?.stop()
+        capturedFactory?.close()
+        producer.close()
+    }
 
     logger.info { "RecEngine started — Kafka=${config.kafka.bootstrapServers} Redis=${config.redis.uri}" }
 }

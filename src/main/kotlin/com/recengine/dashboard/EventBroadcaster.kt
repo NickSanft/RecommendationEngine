@@ -36,7 +36,7 @@ class EventBroadcaster(
         scope.launch {
             log.info { "EventBroadcaster starting — consuming from ${kafkaConfig.topicEvents}" }
             consumerService
-                .eventFlow(topic = kafkaConfig.topicEvents, offsetReset = "latest")
+                .eventFlow(topic = kafkaConfig.topicEvents, groupIdSuffix = "-dashboard", offsetReset = "latest")
                 .collect { event ->
                     _events.emit(event)
                 }
