@@ -45,6 +45,7 @@ dependencies {
     // Coroutines + Serialization
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.jdk8)
+    implementation(libs.coroutines.reactive)
     implementation(libs.serialization.json)
 
     // Redis
