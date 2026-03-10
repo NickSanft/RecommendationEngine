@@ -13,6 +13,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.sse.SSE
 import kotlinx.serialization.json.Json
 
 private val logger = KotlinLogging.logger {}
@@ -32,6 +33,8 @@ fun Application.module() {
     } catch (e: Exception) {
         logger.warn(e) { "Could not create Kafka topics on startup — Kafka may not be available yet" }
     }
+
+    install(SSE)
 
     install(ContentNegotiation) { json(json) }
 
