@@ -1,6 +1,7 @@
 package com.recengine.pipeline
 
 import com.recengine.kafka.KafkaConsumerService
+import com.recengine.metrics.MetricsRegistry
 import com.recengine.ml.FeatureVectorBuilder
 import com.recengine.ml.OnlineFM
 import com.recengine.model.ClickEvent
@@ -91,6 +92,7 @@ class EventProcessor(
                 log.debug { "Impression logged for user=${event.userId} items=${event.itemIds.size}" }
             }
         }
+        MetricsRegistry.eventsProcessedCounter(event::class.simpleName ?: "Unknown").increment()
     } catch (e: Exception) {
         log.warn(e) { "Error handling ${event::class.simpleName} for user=${event.userId}" }
     }

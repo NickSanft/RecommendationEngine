@@ -6,6 +6,7 @@ import com.recengine.dashboard.dashboardRoutes
 import com.recengine.kafka.KafkaConsumerService
 import com.recengine.kafka.KafkaProducerService
 import com.recengine.kafka.TopicAdmin
+import com.recengine.metrics.MetricsRegistry
 import com.recengine.routing.AbAssigner
 import com.recengine.routing.devRoutes
 import com.recengine.routing.feedbackRoutes
@@ -23,6 +24,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
+import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
@@ -39,6 +41,7 @@ fun main() {
 }
 
 fun Application.module() {
+    val startTimeMs = System.currentTimeMillis()
     val config = AppConfig.load()
     val json   = Json { ignoreUnknownKeys = true; encodeDefaults = true; classDiscriminator = "type" }
 
@@ -50,6 +53,9 @@ fun Application.module() {
     }
 
     // ── Ktor plugins ────────────────────────────────────────────────
+    install(MicrometerMetrics) {
+        registry = MetricsRegistry.prometheus
+    }
     install(SSE)
     install(ContentNegotiation) { json(json) }
     install(StatusPages) {
@@ -65,10 +71,14 @@ fun Application.module() {
     // ── Persistent producer (used by health check + dev seed endpoint) ─
     val producer = KafkaProducerService(config.kafka, json)
 
-    // ── Health routes ───────────────────────────────────────────────
+    // ── Health + metrics routes ─────────────────────────────────────
     routing {
         get("/health") {
-            call.respond(mapOf("status" to "ok", "version" to "0.1.0"))
+            call.respond(mapOf(
+                "status"   to "ok",
+                "version"  to "0.1.0",
+                "uptimeMs" to (System.currentTimeMillis() - startTimeMs)
+            ))
         }
         get("/health/kafka") {
             try {
@@ -79,6 +89,9 @@ fun Application.module() {
                     mapOf("kafka" to "unavailable", "error" to e.message)
                 )
             }
+        }
+        get("/metrics") {
+            call.respondText(MetricsRegistry.prometheus.scrape(), ContentType.Text.Plain)
         }
     }
 

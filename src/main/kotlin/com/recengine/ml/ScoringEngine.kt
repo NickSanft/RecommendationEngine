@@ -1,11 +1,13 @@
 package com.recengine.ml
 
 import com.recengine.config.ScoringWeights
+import com.recengine.metrics.MetricsRegistry
 import com.recengine.model.ItemFeatures
 import com.recengine.model.ScoreComponents
 import com.recengine.model.ScoredItem
 import com.recengine.redis.FeatureStore
 import com.recengine.redis.SessionStore
+import io.micrometer.core.instrument.Timer
 import kotlin.math.ln
 import kotlin.math.max
 
@@ -30,36 +32,41 @@ class ScoringEngine(
         candidateItemIds: List<String>,
         featureBuilder: FeatureVectorBuilder
     ): List<ScoredItem> {
-        val sessionVector = sessionStore.getDecayedVector(userId)
-        val nowMs         = System.currentTimeMillis()
+        val sample = Timer.start(MetricsRegistry.prometheus)
+        return try {
+            val sessionVector = sessionStore.getDecayedVector(userId)
+            val nowMs         = System.currentTimeMillis()
 
-        return candidateItemIds.mapNotNull { itemId ->
-            val itemFeatures = featureStore.getItemFeatures(itemId) ?: return@mapNotNull null
-            val itemStats    = featureStore.getItemStats(itemId)
-            val fv           = featureBuilder.build(userId, itemId, itemFeatures)
+            candidateItemIds.mapNotNull { itemId ->
+                val itemFeatures = featureStore.getItemFeatures(itemId) ?: return@mapNotNull null
+                val itemStats    = featureStore.getItemStats(itemId)
+                val fv           = featureBuilder.build(userId, itemId, itemFeatures)
 
-            val sessionScore    = sessionVector[itemId] ?: 0.0
-            val contentScore    = fm.score(fv)
-            val popularityScore = normalizePopularity(itemStats["views"] ?: 0.0)
-            val recencyScore    = recencyDecay(itemFeatures.publishedAtMs, nowMs)
+                val sessionScore    = sessionVector[itemId] ?: 0.0
+                val contentScore    = fm.score(fv)
+                val popularityScore = normalizePopularity(itemStats["views"] ?: 0.0)
+                val recencyScore    = recencyDecay(itemFeatures.publishedAtMs, nowMs)
 
-            val composite = weights.session    * sessionScore +
-                            weights.content    * contentScore +
-                            weights.popularity * popularityScore +
-                            weights.recency    * recencyScore
+                val composite = weights.session    * sessionScore +
+                                weights.content    * contentScore +
+                                weights.popularity * popularityScore +
+                                weights.recency    * recencyScore
 
-            ScoredItem(
-                itemId     = itemId,
-                score      = composite,
-                components = ScoreComponents(
-                    sessionScore    = sessionScore,
-                    contentScore    = contentScore,
-                    popularityScore = popularityScore,
-                    recencyScore    = recencyScore,
-                    compositeScore  = composite
+                ScoredItem(
+                    itemId     = itemId,
+                    score      = composite,
+                    components = ScoreComponents(
+                        sessionScore    = sessionScore,
+                        contentScore    = contentScore,
+                        popularityScore = popularityScore,
+                        recencyScore    = recencyScore,
+                        compositeScore  = composite
+                    )
                 )
-            )
-        }.sortedByDescending { it.score }
+            }.sortedByDescending { it.score }
+        } finally {
+            sample.stop(MetricsRegistry.recommendationLatency)
+        }
     }
 
     // log-normalise over a plausible max of 1 million views

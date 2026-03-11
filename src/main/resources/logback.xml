@@ -1,19 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
+    <!-- ── Human-readable console appender (default) ──────────────────── -->
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
+    <!-- ── JSON console appender (activate via -DLOG_FORMAT=json) ─────── -->
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}","level":"%-5level","thread":"%thread","logger":"%logger","message":"%replace(%msg){'&quot;','\\&quot;'}","exception":"%replace(%ex{short}){'&quot;','\\&quot;'}"}%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ── Root logger ────────────────────────────────────────────────── -->
+    <!-- Logback 1.5.3 has an EmptyStackException bug with <if><else> blocks,  -->
+    <!-- so we use two separate <if><then> blocks (no <else>) to switch format. -->
+    <!-- Default: STDOUT; override with -DLOG_FORMAT=json for JSON output.      -->
     <root level="INFO">
-        <appender-ref ref="STDOUT"/>
+        <if condition='!System.getProperty("LOG_FORMAT", "").equals("json")'>
+            <then><appender-ref ref="STDOUT"/></then>
+        </if>
+        <if condition='System.getProperty("LOG_FORMAT", "").equals("json")'>
+            <then><appender-ref ref="JSON"/></then>
+        </if>
     </root>
 
-    <!-- Reduce noise from Kafka client internals -->
-    <logger name="org.apache.kafka" level="WARN"/>
-    <!-- Reduce noise from Netty -->
-    <logger name="io.netty" level="WARN"/>
+    <!-- ── Noise suppression ───────────────────────────────────────────── -->
+    <logger name="org.apache.kafka"      level="WARN"/>
+    <logger name="io.netty"              level="WARN"/>
+    <logger name="io.lettuce"            level="WARN"/>
+    <logger name="org.testcontainers"    level="WARN"/>
+    <logger name="com.github.dockerjava" level="WARN"/>
 
 </configuration>
