@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RecEngine Demo Shop</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d2e;
+      --surface2: #13151f;
+      --border: #2d3748;
+      --border2: #1e2235;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --dim: #64748b;
+      --accent: #a78bfa;
+      --accent2: #7dd3fc;
+      --green: #4ade80;
+      --amber: #fbbf24;
+      --red: #f87171;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 52px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    header h1 span { color: var(--text); font-weight: 400; }
+
+    #variant-badge {
+      font-size: 0.72rem;
+      background: #3b0764;
+      color: #d8b4fe;
+      border: 1px solid #7c3aed;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      display: none;
+    }
+
+    .header-spacer { flex: 1; }
+
+    .user-label { font-size: 0.82rem; color: var(--muted); }
+    #user-select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    #user-select:focus { outline: none; border-color: var(--accent); }
+
+    a.dash-link {
+      font-size: 0.82rem;
+      color: var(--accent2);
+      text-decoration: none;
+      padding: 4px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    a.dash-link:hover { background: var(--border2); }
+
+    /* ── Main layout ──────────────────────────────────────────────── */
+    main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
+
+    /* ── Section headers ──────────────────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .section-count {
+      font-size: 0.75rem;
+      color: var(--dim);
+      padding: 2px 8px;
+      background: var(--border2);
+      border-radius: 4px;
+    }
+    section { margin-bottom: 40px; }
+
+    /* ── Item grid ────────────────────────────────────────────────── */
+    .item-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .item-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.15s, transform 0.1s;
+      cursor: default;
+    }
+    .item-card:hover { border-color: #4a5568; transform: translateY(-1px); }
+
+    .item-emoji { font-size: 2rem; line-height: 1; }
+    .item-name  { font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .item-cat-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .item-cat   {
+      font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.07em; padding: 2px 7px; border-radius: 4px;
+    }
+    .cat-electronics { background: #1e3a5f; color: #93c5fd; }
+    .cat-books       { background: #312e81; color: #a5b4fc; }
+    .cat-sports      { background: #064e3b; color: #6ee7b7; }
+    .cat-home        { background: #3b2200; color: #fcd34d; }
+    .cat-clothing    { background: #3b0764; color: #d8b4fe; }
+    .cat-toys        { background: #7f1d1d; color: #fca5a5; }
+    .tag-sale        { font-size: 0.6rem; font-weight: 700; color: #f87171; letter-spacing: 0.05em; }
+    .tag-trending    { font-size: 0.6rem; font-weight: 700; color: var(--amber); letter-spacing: 0.05em; }
+    .tag-popular     { font-size: 0.6rem; font-weight: 700; color: var(--accent2); letter-spacing: 0.05em; }
+
+    .item-price {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--green);
+      margin-top: 2px;
+    }
+
+    .item-rating { font-size: 0.78rem; color: var(--amber); }
+
+    .item-actions { display: flex; gap: 8px; margin-top: 6px; }
+    .btn-details, .btn-buy {
+      flex: 1;
+      padding: 7px 0;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s;
+    }
+    .btn-details {
+      background: var(--border2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-details:hover { background: var(--border); color: var(--text); }
+    .btn-buy {
+      background: #7c3aed;
+      color: #f3e8ff;
+    }
+    .btn-buy:hover { background: #6d28d9; }
+
+    /* ── Seed banner ──────────────────────────────────────────────── */
+    #seed-banner {
+      background: #1e2235;
+      border: 1px dashed #4a5568;
+      border-radius: 10px;
+      padding: 20px 24px;
+      text-align: center;
+      display: none;
+      margin-bottom: 12px;
+    }
+    #seed-banner p { color: var(--muted); font-size: 0.88rem; margin-bottom: 12px; }
+    #seed-banner-btn {
+      background: #7c3aed;
+      color: #f3e8ff;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #seed-banner-btn:disabled { opacity: 0.5; cursor: default; }
+    #seed-banner-btn:not(:disabled):hover { background: #6d28d9; }
+
+    /* ── Loading placeholder ──────────────────────────────────────── */
+    .loading-placeholder {
+      grid-column: 1 / -1;
+      color: var(--dim);
+      font-size: 0.88rem;
+      padding: 16px 0;
+    }
+
+    /* ── Item detail modal ────────────────────────────────────────── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    #modal-overlay.open { display: flex; }
+
+    #modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 480px;
+      padding: 28px;
+      position: relative;
+    }
+
+    #modal-close {
+      position: absolute;
+      top: 16px;
+      right: 18px;
+      background: none;
+      border: none;
+      color: var(--dim);
+      font-size: 1.2rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+    #modal-close:hover { color: var(--text); }
+
+    #modal-emoji { font-size: 3rem; margin-bottom: 12px; line-height: 1; }
+    #modal-name  { font-size: 1.3rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .modal-meta  { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+    #modal-price { font-size: 1.5rem; font-weight: 700; color: var(--green); margin-bottom: 8px; }
+    #modal-rating { font-size: 0.9rem; color: var(--amber); margin-bottom: 16px; }
+
+    .modal-divider { border: none; border-top: 1px solid var(--border2); margin: 16px 0; }
+
+    .modal-dwell-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .dwell-label { font-size: 0.78rem; color: var(--dim); }
+    #modal-timer { font-size: 1rem; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-actions .btn-details { flex: 1; }
+    .modal-actions .btn-buy     { flex: 2; font-size: 0.9rem; padding: 10px 0; }
+
+    /* ── Toast ────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 0.85rem;
+      color: var(--text);
+      max-width: 340px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    #toast.show        { opacity: 1; transform: translateY(0); }
+    #toast.error       { border-left-color: var(--red); }
+    #toast.info        { border-left-color: var(--accent2); }
+    #toast.purchase    { border-left-color: var(--green); }
+
+    /* ── Category filter bar ──────────────────────────────────────── */
+    .cat-filter-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .cat-filter-btn {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+    .cat-filter-btn.active {
+      background: var(--border);
+      color: var(--text);
+      border-color: #4a5568;
+    }
+    .cat-filter-btn:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ RecEngine <span>Demo Shop</span></h1>
+  <span id="variant-badge"></span>
+  <div class="header-spacer"></div>
+  <span class="user-label">You are:</span>
+  <select id="user-select"></select>
+  <a class="dash-link" href="/" target="_blank">→ Dashboard</a>
+</header>
+
+<main>
+
+  <!-- ── Recommended for You ──────────────────────────────────────── -->
+  <section id="section-rec">
+    <div class="section-header">
+      <span class="section-title">✦ Recommended for You</span>
+      <span class="section-count" id="rec-count">—</span>
+    </div>
+    <div id="seed-banner">
+      <p>No recommendations yet — seed the item catalogue and some events first.</p>
+      <button id="seed-banner-btn" onclick="seedAll()">Seed Items + Events</button>
+    </div>
+    <div class="item-grid" id="rec-grid">
+      <span class="loading-placeholder">Loading recommendations…</span>
+    </div>
+  </section>
+
+  <!-- ── Trending Now ──────────────────────────────────────────────── -->
+  <section id="section-trending">
+    <div class="section-header">
+      <span class="section-title">🔥 Trending Now</span>
+      <span class="section-count" id="trending-count">—</span>
+    </div>
+    <div class="item-grid" id="trending-grid">
+      <span class="loading-placeholder">Loading trending items…</span>
+    </div>
+  </section>
+
+  <!-- ── All Products ──────────────────────────────────────────────── -->
+  <section>
+    <div class="section-header">
+      <span class="section-title">All Products</span>
+      <span class="section-count">50 items</span>
+    </div>
+    <div class="cat-filter-bar" id="cat-filter-bar"></div>
+    <div class="item-grid" id="all-grid"></div>
+  </section>
+
+</main>
+
+<!-- ── Item Detail Modal ──────────────────────────────────────────── -->
+<div id="modal-overlay">
+  <div id="modal">
+    <button id="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-emoji"></div>
+    <div id="modal-name"></div>
+    <div class="modal-meta" id="modal-meta"></div>
+    <div id="modal-price"></div>
+    <div id="modal-rating"></div>
+    <hr class="modal-divider">
+    <div class="modal-dwell-row">
+      <span class="dwell-label">Time spent viewing:</span>
+      <span id="modal-timer">0:00</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-details" onclick="closeModal()">Close</button>
+      <button class="btn-buy" id="modal-buy-btn">Buy Now</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Catalogue ─────────────────────────────────────────────────────
+const CATALOGUE_LIST = [
+  { id:"item-001", name:"Wireless Headphones",    category:"electronics", price:49.99,  emoji:"🎧", tags:["sale","trending"],  rating:4.3 },
+  { id:"item-002", name:"Mechanical Keyboard",    category:"electronics", price:89.99,  emoji:"⌨️", tags:["popular"],           rating:4.7 },
+  { id:"item-003", name:"USB-C Hub 7-in-1",       category:"electronics", price:34.99,  emoji:"🔌", tags:["sale"],              rating:4.1 },
+  { id:"item-004", name:"Laptop Stand",            category:"electronics", price:29.99,  emoji:"💻", tags:[],                   rating:4.0 },
+  { id:"item-005", name:"Webcam 1080p HD",         category:"electronics", price:59.99,  emoji:"📷", tags:["popular"],           rating:4.5 },
+  { id:"item-006", name:"Bluetooth Speaker",       category:"electronics", price:39.99,  emoji:"🔊", tags:["trending"],          rating:4.2 },
+  { id:"item-007", name:"Smartwatch Series 3",     category:"electronics", price:199.99, emoji:"⌚", tags:["trending"],          rating:4.6 },
+  { id:"item-008", name:"Wireless Mouse",          category:"electronics", price:24.99,  emoji:"🖱️", tags:["sale"],              rating:4.4 },
+  { id:"item-009", name:"LED Desk Lamp",           category:"electronics", price:19.99,  emoji:"💡", tags:[],                   rating:3.9 },
+  { id:"item-010", name:"Tablet 10\"",             category:"electronics", price:299.99, emoji:"📱", tags:["popular"],           rating:4.5 },
+  { id:"item-011", name:"The Art of Clean Code",   category:"books",       price:14.99,  emoji:"📖", tags:["trending"],          rating:4.8 },
+  { id:"item-012", name:"Machine Learning Basics", category:"books",       price:24.99,  emoji:"📚", tags:["popular"],           rating:4.6 },
+  { id:"item-013", name:"Design Patterns",         category:"books",       price:19.99,  emoji:"📗", tags:[],                   rating:4.5 },
+  { id:"item-014", name:"The Pragmatic Programmer",category:"books",       price:17.99,  emoji:"📘", tags:["trending"],          rating:4.9 },
+  { id:"item-015", name:"Deep Work",               category:"books",       price:12.99,  emoji:"📙", tags:["sale"],              rating:4.7 },
+  { id:"item-016", name:"Atomic Habits",           category:"books",       price:11.99,  emoji:"📓", tags:["trending","sale"],   rating:4.9 },
+  { id:"item-017", name:"Dune",                    category:"books",       price:9.99,   emoji:"📕", tags:["popular"],           rating:4.8 },
+  { id:"item-018", name:"Sapiens",                 category:"books",       price:13.99,  emoji:"📔", tags:[],                   rating:4.6 },
+  { id:"item-019", name:"Clean Architecture",      category:"books",       price:22.99,  emoji:"📒", tags:[],                   rating:4.4 },
+  { id:"item-020", name:"Zero to One",             category:"books",       price:10.99,  emoji:"📃", tags:["trending"],          rating:4.3 },
+  { id:"item-021", name:"Running Shoes",           category:"sports",      price:79.99,  emoji:"👟", tags:["trending"],          rating:4.5 },
+  { id:"item-022", name:"Yoga Mat",                category:"sports",      price:24.99,  emoji:"🧘", tags:["popular"],           rating:4.6 },
+  { id:"item-023", name:"Resistance Bands Set",    category:"sports",      price:14.99,  emoji:"🏋️", tags:["sale"],              rating:4.3 },
+  { id:"item-024", name:"Insulated Water Bottle",  category:"sports",      price:19.99,  emoji:"🍶", tags:[],                   rating:4.7 },
+  { id:"item-025", name:"Speed Jump Rope",         category:"sports",      price:9.99,   emoji:"🪢", tags:["sale"],              rating:4.1 },
+  { id:"item-026", name:"Foam Roller",             category:"sports",      price:17.99,  emoji:"🔵", tags:[],                   rating:4.2 },
+  { id:"item-027", name:"Adjustable Dumbbells",    category:"sports",      price:49.99,  emoji:"🏋️", tags:["popular"],           rating:4.8 },
+  { id:"item-028", name:"Cycling Helmet",          category:"sports",      price:34.99,  emoji:"🚵", tags:[],                   rating:4.3 },
+  { id:"item-029", name:"GPS Sports Watch",        category:"sports",      price:89.99,  emoji:"⌚", tags:["trending"],          rating:4.4 },
+  { id:"item-030", name:"Protein Shaker Bottle",   category:"sports",      price:12.99,  emoji:"🥤", tags:["sale"],              rating:4.0 },
+  { id:"item-031", name:"Espresso Coffee Maker",   category:"home",        price:49.99,  emoji:"☕", tags:["popular"],           rating:4.6 },
+  { id:"item-032", name:"HEPA Air Purifier",       category:"home",        price:89.99,  emoji:"🌬️", tags:["trending"],          rating:4.5 },
+  { id:"item-033", name:"Smart Plug 4-pack",       category:"home",        price:14.99,  emoji:"🔌", tags:["sale"],              rating:4.3 },
+  { id:"item-034", name:"Scented Candle Set",      category:"home",        price:22.99,  emoji:"🕯️", tags:[],                   rating:4.4 },
+  { id:"item-035", name:"Ceramic Plant Pot Set",   category:"home",        price:17.99,  emoji:"🌿", tags:[],                   rating:4.2 },
+  { id:"item-036", name:"Sherpa Throw Blanket",    category:"home",        price:29.99,  emoji:"🛋️", tags:["trending","sale"],   rating:4.8 },
+  { id:"item-037", name:"Digital Kitchen Timer",   category:"home",        price:8.99,   emoji:"⏱️", tags:[],                   rating:3.8 },
+  { id:"item-038", name:"Glass Food Containers",   category:"home",        price:19.99,  emoji:"🥡", tags:["popular"],           rating:4.5 },
+  { id:"item-039", name:"Professional Knife Set",  category:"home",        price:59.99,  emoji:"🔪", tags:[],                   rating:4.7 },
+  { id:"item-040", name:"Smart LED Bulbs 4-pack",  category:"home",        price:27.99,  emoji:"💡", tags:["trending"],          rating:4.4 },
+  { id:"item-041", name:"Cotton Crew T-Shirt",     category:"clothing",    price:19.99,  emoji:"👕", tags:["sale"],              rating:4.2 },
+  { id:"item-042", name:"Zip-up Hoodie",           category:"clothing",    price:34.99,  emoji:"🧥", tags:["popular"],           rating:4.5 },
+  { id:"item-043", name:"Merino Wool Beanie",      category:"clothing",    price:12.99,  emoji:"🧢", tags:[],                   rating:4.3 },
+  { id:"item-044", name:"Athletic Socks 6-pack",   category:"clothing",    price:9.99,   emoji:"🧦", tags:["sale"],              rating:4.1 },
+  { id:"item-045", name:"Polarised Sunglasses",    category:"clothing",    price:24.99,  emoji:"🕶️", tags:["trending"],          rating:4.4 },
+  { id:"item-046", name:"Catan Board Game",        category:"toys",        price:39.99,  emoji:"🎲", tags:["popular"],           rating:4.8 },
+  { id:"item-047", name:"Bicycle Playing Cards",   category:"toys",        price:6.99,   emoji:"🃏", tags:[],                   rating:4.5 },
+  { id:"item-048", name:"Jigsaw Puzzle 1000pc",    category:"toys",        price:14.99,  emoji:"🧩", tags:["trending"],          rating:4.6 },
+  { id:"item-049", name:"Weighted Chess Set",      category:"toys",        price:29.99,  emoji:"♟️", tags:[],                   rating:4.7 },
+  { id:"item-050", name:"LEGO Classic Creative",   category:"toys",        price:49.99,  emoji:"🏗️", tags:["sale","popular"],    rating:4.9 },
+];
+
+// Build lookup map
+const CATALOGUE = {};
+CATALOGUE_LIST.forEach(item => { CATALOGUE[item.id] = item; });
+
+// ── Users ─────────────────────────────────────────────────────────
+const USERS = [
+  { id:"user-001", name:"Alice"   }, { id:"user-002", name:"Bob"     },
+  { id:"user-003", name:"Carol"   }, { id:"user-004", name:"Dave"    },
+  { id:"user-005", name:"Eve"     }, { id:"user-006", name:"Frank"   },
+  { id:"user-007", name:"Grace"   }, { id:"user-008", name:"Henry"   },
+  { id:"user-009", name:"Iris"    }, { id:"user-010", name:"Jack"    },
+  { id:"user-011", name:"Kate"    }, { id:"user-012", name:"Liam"    },
+  { id:"user-013", name:"Mia"     }, { id:"user-014", name:"Noah"    },
+  { id:"user-015", name:"Olivia"  }, { id:"user-016", name:"Paul"    },
+  { id:"user-017", name:"Quinn"   }, { id:"user-018", name:"Rachel"  },
+  { id:"user-019", name:"Sam"     }, { id:"user-020", name:"Tina"    },
+];
+
+// ── State ─────────────────────────────────────────────────────────
+let userId    = USERS[0].id;
+let sessionId = genSessionId();
+let currentVariant = 'unknown';
+let modalItemId    = null;
+let modalOpenTime  = null;
+let timerInterval  = null;
+let recInterval    = null;
+
+function genSessionId() {
+  return 'shop-' + userId + '-' + Date.now();
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────
+(function init() {
+  // Populate user selector
+  const sel = document.getElementById('user-select');
+  USERS.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u.id;
+    opt.textContent = u.name + ' (' + u.id + ')';
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => {
+    userId    = sel.value;
+    sessionId = genSessionId();
+    refreshRecommendations();
+  });
+
+  // Populate category filter
+  buildCatFilter();
+
+  // Render all products
+  renderAllProducts(CATALOGUE_LIST);
+
+  // Load recommendations & trending
+  refreshRecommendations();
+  refreshTrending();
+  recInterval = setInterval(refreshRecommendations, 30_000);
+
+  // Set up IntersectionObserver for impressions
+  setupImpressionObserver();
+})();
+
+// ── Category filter ───────────────────────────────────────────────
+let activeCategory = 'all';
+
+function buildCatFilter() {
+  const bar  = document.getElementById('cat-filter-bar');
+  const cats = ['all', 'electronics', 'books', 'sports', 'home', 'clothing', 'toys'];
+  const labels = { all:'All', electronics:'Electronics', books:'Books', sports:'Sports',
+                   home:'Home', clothing:'Clothing', toys:'Toys & Games' };
+  cats.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-filter-btn' + (cat === 'all' ? ' active' : '');
+    btn.textContent = labels[cat];
+    btn.dataset.cat = cat;
+    btn.addEventListener('click', () => {
+      activeCategory = cat;
+      document.querySelectorAll('.cat-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filtered = cat === 'all' ? CATALOGUE_LIST : CATALOGUE_LIST.filter(i => i.category === cat);
+      renderAllProducts(filtered);
+    });
+    bar.appendChild(btn);
+  });
+}
+
+// ── Render helpers ────────────────────────────────────────────────
+function buildCard(item, context) {
+  const card = document.createElement('div');
+  card.className = 'item-card';
+  card.dataset.itemId = item.id;
+
+  const stars = '★'.repeat(Math.floor(item.rating)) + (item.rating % 1 >= 0.5 ? '½' : '') +
+                '☆'.repeat(5 - Math.ceil(item.rating));
+  const tagsHtml = item.tags.map(t => `<span class="tag-${t}">${t.toUpperCase()}</span>`).join('');
+
+  card.innerHTML = `
+    <div class="item-emoji">${item.emoji}</div>
+    <div class="item-name">${escHtml(item.name)}</div>
+    <div class="item-cat-row">
+      <span class="item-cat cat-${item.category}">${item.category}</span>
+      ${tagsHtml}
+    </div>
+    <div class="item-price">$${item.price.toFixed(2)}</div>
+    <div class="item-rating">${stars} <span style="color:var(--dim)">(${item.rating})</span></div>
+    <div class="item-actions">
+      <button class="btn-details" data-item="${item.id}" data-ctx="${context}">View Details</button>
+      <button class="btn-buy"     data-item="${item.id}">Buy Now</button>
+    </div>`;
+
+  card.querySelector('.btn-details').addEventListener('click', (e) => {
+    e.stopPropagation();
+    fireClick(item.id);
+    openModal(item.id);
+  });
+  card.querySelector('.btn-buy').addEventListener('click', (e) => {
+    e.stopPropagation();
+    firePurchase(item.id, item.price);
+  });
+
+  return card;
+}
+
+function renderAllProducts(items) {
+  const grid = document.getElementById('all-grid');
+  grid.innerHTML = '';
+  items.forEach(item => grid.appendChild(buildCard(item, 'catalogue')));
+}
+
+function renderItemGrid(gridId, itemIds, fallback) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = '';
+  const items = itemIds
+    .map(id => CATALOGUE[id])
+    .filter(Boolean);
+  if (items.length === 0) {
+    const p = document.createElement('span');
+    p.className = 'loading-placeholder';
+    p.textContent = fallback;
+    grid.appendChild(p);
+    return 0;
+  }
+  items.forEach(item => grid.appendChild(buildCard(item, gridId)));
+  return items.length;
+}
+
+// ── Recommendations ───────────────────────────────────────────────
+async function refreshRecommendations() {
+  let data;
+  try {
+    const resp = await fetch(`/api/v1/recommendations/${userId}?limit=8&session_id=${encodeURIComponent(sessionId)}`);
+    data = await resp.json();
+  } catch (e) {
+    document.getElementById('rec-grid').innerHTML =
+      '<span class="loading-placeholder">Could not reach server.</span>';
+    return;
+  }
+
+  currentVariant = data.variantId || 'unknown';
+  const badge = document.getElementById('variant-badge');
+  badge.textContent = 'Variant: ' + currentVariant;
+  badge.style.display = 'inline-block';
+
+  const itemIds = (data.items || []).map(i => i.itemId);
+  const n = renderItemGrid('rec-grid', itemIds, '');
+  document.getElementById('rec-count').textContent = n + ' items';
+
+  if (n === 0) {
+    document.getElementById('seed-banner').style.display = 'block';
+  } else {
+    document.getElementById('seed-banner').style.display = 'none';
+    // Fire impression for visible recommended items
+    fireImpression(itemIds.slice(0, 8));
+  }
+}
+
+// ── Trending ──────────────────────────────────────────────────────
+async function refreshTrending() {
+  let data;
+  try {
+    const resp = await fetch('/api/v1/trending?window=hourly');
+    data = await resp.json();
+  } catch {
+    document.getElementById('trending-grid').innerHTML =
+      '<span class="loading-placeholder">Could not load trending items.</span>';
+    return;
+  }
+
+  const itemIds = (data.items || []).slice(0, 8);
+  const n = renderItemGrid('trending-grid', itemIds, 'No trending items yet.');
+  document.getElementById('trending-count').textContent = n + ' items';
+  if (n > 0) fireImpression(itemIds.slice(0, 8));
+}
+
+// ── Seed ─────────────────────────────────────────────────────────
+async function seedAll() {
+  const btn = document.getElementById('seed-banner-btn');
+  btn.disabled = true;
+  btn.textContent = 'Seeding…';
+  try {
+    await fetch('/dev/seed/items', { method: 'POST' });
+    showToast('Items seeded into Redis.', 'info');
+    await new Promise(r => setTimeout(r, 400));
+    await fetch('/dev/seed?count=100&type=random', { method: 'POST' });
+    showToast('100 synthetic events seeded.', 'info');
+    await new Promise(r => setTimeout(r, 1000));
+    await refreshRecommendations();
+    await refreshTrending();
+  } catch (e) {
+    showToast('Seed failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Seed Items + Events';
+  }
+}
+
+// ── Event firing ──────────────────────────────────────────────────
+function fireImpression(visibleItemIds) {
+  if (!visibleItemIds || visibleItemIds.length === 0) return;
+  fetch('/api/v1/events/impression', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      timestampMs: Date.now(),
+      itemIds: visibleItemIds,
+      sessionId,
+      variantId: currentVariant,
+    }),
+  }).catch(() => {});
+}
+
+function fireClick(itemId) {
+  fetch('/api/v1/events/click', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      timestampMs: Date.now(),
+      itemId,
+      sessionId,
+      recommendationId: null,
+    }),
+  }).catch(() => {});
+}
+
+function fireView(itemId, dwellSeconds) {
+  fetch('/api/v1/events/view', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      timestampMs: Date.now(),
+      itemId,
+      sessionId,
+      dwellSeconds: Math.round(dwellSeconds * 10) / 10,
+      sourcePosition: 0,
+    }),
+  }).catch(() => {});
+}
+
+function firePurchase(itemId, price) {
+  fetch('/api/v1/events/purchase', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      timestampMs: Date.now(),
+      itemId,
+      sessionId,
+      revenue: price,
+      quantity: 1,
+    }),
+  }).catch(() => {});
+  const item = CATALOGUE[itemId];
+  showToast('Purchased: ' + (item ? item.name : itemId) + ' — $' + price.toFixed(2), 'purchase');
+}
+
+// ── IntersectionObserver for catalogue impressions ────────────────
+function setupImpressionObserver() {
+  const observer = new IntersectionObserver((entries) => {
+    const visible = entries
+      .filter(e => e.isIntersecting)
+      .map(e => e.target.dataset.itemId)
+      .filter(Boolean);
+    if (visible.length > 0) fireImpression(visible);
+  }, { threshold: 0.5 });
+
+  // Observe all-grid cards (re-observe on filter change via MutationObserver)
+  const grid = document.getElementById('all-grid');
+  const attachObserver = () => {
+    grid.querySelectorAll('.item-card').forEach(card => observer.observe(card));
+  };
+  attachObserver();
+  new MutationObserver(attachObserver).observe(grid, { childList: true });
+}
+
+// ── Modal ─────────────────────────────────────────────────────────
+function openModal(itemId) {
+  const item = CATALOGUE[itemId];
+  if (!item) return;
+
+  modalItemId   = itemId;
+  modalOpenTime = Date.now();
+
+  document.getElementById('modal-emoji').textContent = item.emoji;
+  document.getElementById('modal-name').textContent  = item.name;
+  document.getElementById('modal-price').textContent = '$' + item.price.toFixed(2);
+
+  const stars = '★'.repeat(Math.floor(item.rating)) + '☆'.repeat(5 - Math.floor(item.rating));
+  document.getElementById('modal-rating').textContent = stars + '  ' + item.rating + ' out of 5';
+
+  const meta = document.getElementById('modal-meta');
+  meta.innerHTML = `<span class="item-cat cat-${item.category}">${item.category}</span>` +
+    item.tags.map(t => `<span class="tag-${t}">${t.toUpperCase()}</span>`).join('');
+
+  const buyBtn = document.getElementById('modal-buy-btn');
+  buyBtn.onclick = () => { firePurchase(item.id, item.price); closeModal(); };
+
+  document.getElementById('modal-timer').textContent = '0:00';
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (!modalOpenTime) return;
+    const elapsed = Math.floor((Date.now() - modalOpenTime) / 1000);
+    const m = Math.floor(elapsed / 60);
+    const s = elapsed % 60;
+    document.getElementById('modal-timer').textContent = m + ':' + String(s).padStart(2, '0');
+  }, 1000);
+}
+
+function closeModal() {
+  if (modalItemId && modalOpenTime) {
+    const dwell = (Date.now() - modalOpenTime) / 1000;
+    fireView(modalItemId, dwell);
+  }
+  clearInterval(timerInterval);
+  modalItemId   = null;
+  modalOpenTime = null;
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close modal on overlay click
+document.getElementById('modal-overlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+
+// Close modal on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('modal-overlay').classList.contains('open')) {
+    closeModal();
+  }
+});
+
+// ── Toast ─────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg, cls) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = (cls ? cls + ' ' : '') + 'show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = cls || ''; }, 4000);
+}
+
+// ── Utilities ─────────────────────────────────────────────────────
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

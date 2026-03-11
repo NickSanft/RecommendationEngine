@@ -32,6 +32,14 @@ fun Application.dashboardRoutes(broadcaster: EventBroadcaster, json: Json) {
             call.respondText(html, ContentType.Text.Html)
         }
 
+        get("/shop") {
+            val html = this::class.java.classLoader
+                .getResourceAsStream("static/shop.html")
+                ?.readBytes()?.toString(Charsets.UTF_8)
+                ?: "<h1>shop.html not found</h1>"
+            call.respondText(html, ContentType.Text.Html)
+        }
+
         post("/events/clear") {
             broadcaster.clearReplayCache()
             call.respond(HttpStatusCode.NoContent)
