@@ -33,6 +33,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.SSE
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 private val logger = KotlinLogging.logger {}
 
@@ -75,11 +77,11 @@ fun Application.module() {
     // ── Health + metrics routes ─────────────────────────────────────
     routing {
         get("/health") {
-            call.respond(mapOf(
-                "status"   to "ok",
-                "version"  to "0.1.0",
-                "uptimeMs" to (System.currentTimeMillis() - startTimeMs)
-            ))
+            call.respond(buildJsonObject {
+                put("status", "ok")
+                put("version", "0.1.0")
+                put("uptimeMs", System.currentTimeMillis() - startTimeMs)
+            })
         }
         get("/health/kafka") {
             try {
