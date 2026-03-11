@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>RecEngine — Live Event Dashboard</title>
+  <title>RecEngine — Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
@@ -16,31 +17,80 @@
       overflow: hidden;
     }
 
+    /* ── Header ─────────────────────────────────────────────────── */
     header {
       background: #1a1d2e;
       border-bottom: 1px solid #2d3748;
-      padding: 14px 24px;
+      padding: 0 24px;
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      flex-shrink: 0;
+      height: 52px;
+    }
+    header h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #a78bfa;
       display: flex;
       align-items: center;
-      gap: 16px;
-      flex-shrink: 0;
+      padding-right: 24px;
+      border-right: 1px solid #2d3748;
+      white-space: nowrap;
     }
 
-    header h1 { font-size: 1.1rem; font-weight: 600; color: #a78bfa; }
-
-    #status {
-      font-size: 0.75rem;
-      padding: 3px 10px;
-      border-radius: 999px;
+    /* ── Tab nav ─────────────────────────────────────────────────── */
+    #tab-nav {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      flex: 1;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: #64748b;
+      font-size: 0.85rem;
       font-weight: 500;
+      padding: 0 20px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
     }
+    .tab-btn:hover { color: #cbd5e1; }
+    .tab-btn.active { color: #a78bfa; border-bottom-color: #a78bfa; }
+
+    /* ── Header right ────────────────────────────────────────────── */
+    #header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-left: 16px;
+      border-left: 1px solid #2d3748;
+      margin-left: auto;
+    }
+    #status { font-size: 0.75rem; padding: 3px 10px; border-radius: 999px; font-weight: 500; }
     #status.connecting { background: #92400e; color: #fbbf24; }
     #status.open       { background: #14532d; color: #4ade80; }
     #status.closed     { background: #7f1d1d; color: #f87171; }
     #status.paused     { background: #1e3a5f; color: #60a5fa; }
+    #stats-pill { font-size: 0.8rem; color: #94a3b8; }
+    a.shop-link {
+      font-size: 0.8rem;
+      color: #7dd3fc;
+      text-decoration: none;
+      padding: 4px 10px;
+      border: 1px solid #2d3748;
+      border-radius: 6px;
+    }
+    a.shop-link:hover { background: #1e2235; }
 
-    #stats { margin-left: auto; font-size: 0.8rem; color: #94a3b8; }
+    /* ── Tab panels ──────────────────────────────────────────────── */
+    .tab-panel { display: none; flex: 1; overflow: hidden; }
+    .tab-panel.active { display: flex; flex-direction: column; }
 
+    /* ── Feed tab ────────────────────────────────────────────────── */
     #controls {
       padding: 10px 24px;
       background: #13151f;
@@ -51,398 +101,761 @@
       flex-shrink: 0;
       flex-wrap: wrap;
     }
-
     #filter {
-      background: #1e2235;
-      border: 1px solid #2d3748;
-      color: #e2e8f0;
-      padding: 5px 12px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      width: 220px;
+      background: #1e2235; border: 1px solid #2d3748; color: #e2e8f0;
+      padding: 5px 12px; border-radius: 6px; font-size: 0.85rem; width: 220px;
     }
     #filter::placeholder { color: #4a5568; }
-
-    .type-filter {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
+    .type-filter { display: flex; gap: 6px; flex-wrap: wrap; }
     .type-btn {
-      font-size: 0.72rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 3px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-      border: 1px solid transparent;
-      opacity: 0.45;
-      transition: opacity 0.15s;
+      font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 3px 10px; border-radius: 4px;
+      cursor: pointer; border: 1px solid transparent; opacity: 0.45; transition: opacity 0.15s;
     }
-    .type-btn.active  { opacity: 1; }
+    .type-btn.active { opacity: 1; }
     .type-btn.ViewEvent       { background: #312e81; color: #a5b4fc; border-color: #4338ca; }
     .type-btn.ClickEvent      { background: #3b0764; color: #d8b4fe; border-color: #7c3aed; }
     .type-btn.PurchaseEvent   { background: #064e3b; color: #6ee7b7; border-color: #059669; }
     .type-btn.ImpressionEvent { background: #1e3a5f; color: #93c5fd; border-color: #2563eb; }
-
     .ctrl-btn {
-      background: #1e2235;
-      border: 1px solid #2d3748;
-      color: #94a3b8;
-      padding: 5px 14px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      margin-left: auto;
+      background: #1e2235; border: 1px solid #2d3748; color: #94a3b8;
+      padding: 5px 14px; border-radius: 6px; font-size: 0.85rem; cursor: pointer;
     }
     .ctrl-btn:hover { background: #2d3748; color: #e2e8f0; }
+    .seed-group { display: flex; align-items: center; gap: 6px; }
+    #seedCount {
+      width: 64px; background: #1e2235; border: 1px solid #2d3748; color: #e2e8f0;
+      padding: 5px 8px; border-radius: 6px; font-size: 0.85rem; text-align: center;
+    }
+    #seedType {
+      background: #1e2235; border: 1px solid #2d3748; color: #e2e8f0;
+      padding: 5px 8px; border-radius: 6px; font-size: 0.85rem;
+    }
+    #seedBtn {
+      background: #3b0764; border: 1px solid #7c3aed; color: #d8b4fe;
+      padding: 5px 14px; border-radius: 6px; font-size: 0.85rem;
+      cursor: pointer; font-weight: 500; transition: background 0.15s;
+    }
+    #seedBtn:hover:not(:disabled) { background: #4c0aad; }
+    #seedBtn:disabled { opacity: 0.5; cursor: default; }
 
     #feed {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      flex: 1; overflow-y: auto; padding: 16px 24px;
+      display: flex; flex-direction: column; gap: 10px;
     }
-
-    #empty-state {
-      margin: auto;
-      text-align: center;
-      color: #4a5568;
-    }
+    #empty-state { margin: auto; text-align: center; color: #4a5568; }
     #empty-state p { font-size: 0.9rem; margin-top: 8px; }
 
     .event-card {
-      background: #1a1d2e;
-      border: 1px solid #2d3748;
-      border-left: 3px solid #6366f1;
-      border-radius: 8px;
-      padding: 12px 16px;
-      animation: slideIn 0.18s ease;
-      cursor: pointer;
+      background: #1a1d2e; border: 1px solid #2d3748;
+      border-left: 3px solid #6366f1; border-radius: 8px;
+      padding: 12px 16px; animation: slideIn 0.18s ease; cursor: pointer;
     }
     .event-card.ViewEvent       { border-left-color: #6366f1; }
     .event-card.ClickEvent      { border-left-color: #a855f7; }
     .event-card.PurchaseEvent   { border-left-color: #10b981; }
     .event-card.ImpressionEvent { border-left-color: #3b82f6; }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(-6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .event-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+    .event-header { display: flex; align-items: center; gap: 10px; }
     .event-type {
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 2px 8px;
-      border-radius: 4px;
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; padding: 2px 8px; border-radius: 4px;
     }
     .ViewEvent       .event-type { background: #312e81; color: #a5b4fc; }
     .ClickEvent      .event-type { background: #3b0764; color: #d8b4fe; }
     .PurchaseEvent   .event-type { background: #064e3b; color: #6ee7b7; }
     .ImpressionEvent .event-type { background: #1e3a5f; color: #93c5fd; }
-
-    .event-user  { font-size: 0.85rem; color: #94a3b8; }
-    .event-item  { font-size: 0.82rem; color: #64748b; }
-    .event-time  { font-size: 0.75rem; color: #475569; margin-left: auto; }
+    .event-user { font-size: 0.85rem; color: #94a3b8; }
+    .event-item { font-size: 0.82rem; color: #64748b; }
+    .event-time { font-size: 0.75rem; color: #475569; margin-left: auto; }
     .expand-icon { font-size: 0.75rem; color: #475569; margin-left: 6px; transition: transform 0.15s; }
     .event-card.expanded .expand-icon { transform: rotate(90deg); }
-
     .event-payload {
-      display: none;
-      margin-top: 10px;
-      background: #0a0c14;
-      border: 1px solid #1e2235;
-      border-radius: 6px;
-      padding: 10px 14px;
-      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-      font-size: 0.78rem;
-      line-height: 1.6;
-      color: #7dd3fc;
-      white-space: pre;
-      overflow-x: auto;
-      max-height: 320px;
+      display: none; margin-top: 10px; background: #0a0c14;
+      border: 1px solid #1e2235; border-radius: 6px; padding: 10px 14px;
+      font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
+      font-size: 0.78rem; line-height: 1.6; color: #7dd3fc;
+      white-space: pre; overflow-x: auto; max-height: 320px;
     }
     .event-card.expanded .event-payload { display: block; }
+    .json-key  { color: #93c5fd; }
+    .json-str  { color: #86efac; }
+    .json-num  { color: #fbbf24; }
+    .json-bool { color: #f472b6; }
+    .json-null { color: #94a3b8; }
 
-    /* JSON syntax highlighting */
-    .json-key    { color: #93c5fd; }
-    .json-str    { color: #86efac; }
-    .json-num    { color: #fbbf24; }
-    .json-bool   { color: #f472b6; }
-    .json-null   { color: #94a3b8; }
-
-    /* Seed controls */
-    .seed-group {
+    /* ── Architecture tab ────────────────────────────────────────── */
+    #tab-arch { overflow-y: auto; }
+    .arch-inner {
+      padding: 32px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .arch-section-title {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: #475569; margin-bottom: 12px;
+    }
+    .arch-flow {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 0;
+      flex-wrap: wrap;
+      gap: 8px;
     }
-    #seedCount {
-      width: 64px;
-      background: #1e2235;
-      border: 1px solid #2d3748;
-      color: #e2e8f0;
-      padding: 5px 8px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      text-align: center;
-    }
-    #seedType {
-      background: #1e2235;
-      border: 1px solid #2d3748;
-      color: #e2e8f0;
-      padding: 5px 8px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-    }
-    #seedBtn {
-      background: #3b0764;
-      border: 1px solid #7c3aed;
-      color: #d8b4fe;
-      padding: 5px 14px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      font-weight: 500;
-      transition: background 0.15s;
-    }
-    #seedBtn:hover:not(:disabled) { background: #4c0aad; }
-    #seedBtn:disabled { opacity: 0.5; cursor: default; }
-
-    /* Toast */
-    #toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
+    .arch-node {
       background: #1a1d2e;
       border: 1px solid #2d3748;
-      border-left: 3px solid #10b981;
-      border-radius: 8px;
-      padding: 12px 18px;
-      font-size: 0.85rem;
-      color: #e2e8f0;
-      max-width: 340px;
-      opacity: 0;
-      transform: translateY(10px);
-      transition: opacity 0.25s, transform 0.25s;
-      pointer-events: none;
-      z-index: 9999;
+      border-radius: 10px;
+      padding: 14px 18px;
+      min-width: 140px;
+      position: relative;
     }
-    #toast.show { opacity: 1; transform: translateY(0); }
+    .arch-node-title { font-size: 0.82rem; font-weight: 600; color: #e2e8f0; }
+    .arch-node-sub   { font-size: 0.72rem; color: #64748b; margin-top: 3px; }
+    .arch-node-badge {
+      display: inline-block; font-size: 0.65rem; font-weight: 600;
+      padding: 2px 7px; border-radius: 4px; margin-top: 6px;
+      background: #1e2235; color: #94a3b8;
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      display: inline-block; margin-right: 6px;
+      background: #374151;
+    }
+    .status-dot.ok      { background: #22c55e; box-shadow: 0 0 6px #22c55e88; }
+    .status-dot.warn    { background: #f59e0b; box-shadow: 0 0 6px #f59e0b88; }
+    .status-dot.error   { background: #ef4444; box-shadow: 0 0 6px #ef444488; }
+    .arch-arrow {
+      color: #334155; font-size: 1.2rem; font-weight: 300; padding: 0 4px;
+      align-self: center; flex-shrink: 0;
+    }
+    .arch-divider {
+      border: none; border-top: 1px solid #1e2235; margin: 4px 0;
+    }
+    .arch-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .arch-col { display: flex; flex-direction: column; gap: 8px; }
+    .arch-col-label {
+      font-size: 0.68rem; color: #475569; text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 4px;
+    }
+
+    /* ── Stats & Model tabs ──────────────────────────────────────── */
+    .metrics-inner {
+      padding: 24px 32px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .stat-card {
+      background: #1a1d2e;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+    .stat-card-label { font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; }
+    .stat-card-value { font-size: 1.9rem; font-weight: 700; color: #e2e8f0; margin-top: 6px; line-height: 1; }
+    .stat-card-sub   { font-size: 0.75rem; color: #475569; margin-top: 6px; }
+    .stat-card.green .stat-card-value { color: #4ade80; }
+    .stat-card.amber .stat-card-value { color: #fbbf24; }
+    .stat-card.red   .stat-card-value { color: #f87171; }
+
+    .chart-card {
+      background: #1a1d2e;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+    .chart-card-title { font-size: 0.78rem; font-weight: 600; color: #94a3b8; margin-bottom: 14px; }
+    .chart-wrap { position: relative; height: 160px; }
+    .chart-wrap-tall { position: relative; height: 220px; }
+
+    .latency-row { display: flex; gap: 16px; }
+    .latency-card {
+      flex: 1; background: #1a1d2e; border: 1px solid #2d3748;
+      border-radius: 10px; padding: 16px 18px; text-align: center;
+    }
+    .latency-card-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; }
+    .latency-card-value { font-size: 2rem; font-weight: 700; margin-top: 8px; }
+    .latency-card.green .latency-card-value { color: #4ade80; }
+    .latency-card.amber .latency-card-value { color: #fbbf24; }
+    .latency-card.red   .latency-card-value { color: #f87171; }
+    .latency-card-unit  { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+
+    /* ── Toast ───────────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1a1d2e; border: 1px solid #2d3748;
+      border-left: 3px solid #10b981; border-radius: 8px;
+      padding: 12px 18px; font-size: 0.85rem; color: #e2e8f0;
+      max-width: 340px; opacity: 0; transform: translateY(10px);
+      transition: opacity 0.25s, transform 0.25s; pointer-events: none; z-index: 9999;
+    }
+    #toast.show  { opacity: 1; transform: translateY(0); }
     #toast.error { border-left-color: #ef4444; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>RecEngine — Live Event Stream</h1>
-  <span id="status" class="connecting">connecting…</span>
-  <span id="stats">0 events</span>
+  <h1>⚡ RecEngine</h1>
+  <nav id="tab-nav">
+    <button class="tab-btn active" data-tab="feed">Live Feed</button>
+    <button class="tab-btn" data-tab="arch">Architecture</button>
+    <button class="tab-btn" data-tab="stats">Pipeline Stats</button>
+    <button class="tab-btn" data-tab="model">Model</button>
+  </nav>
+  <div id="header-right">
+    <span id="status" class="connecting">connecting…</span>
+    <span id="stats-pill">0 events</span>
+    <a class="shop-link" href="/shop" target="_blank">🛒 Demo Shop</a>
+  </div>
 </header>
 
-<div id="controls">
-  <input id="filter" type="text" placeholder="Filter by user, item, or session…">
-  <div class="type-filter">
-    <button class="type-btn ViewEvent active"       onclick="toggleType('ViewEvent',       this)">View</button>
-    <button class="type-btn ClickEvent active"      onclick="toggleType('ClickEvent',      this)">Click</button>
-    <button class="type-btn PurchaseEvent active"   onclick="toggleType('PurchaseEvent',   this)">Purchase</button>
-    <button class="type-btn ImpressionEvent active" onclick="toggleType('ImpressionEvent', this)">Impression</button>
+<!-- ── FEED TAB ──────────────────────────────────────────────────── -->
+<div id="tab-feed" class="tab-panel active">
+  <div id="controls">
+    <input id="filter" type="text" placeholder="Filter by user, item, or session…">
+    <div class="type-filter">
+      <button class="type-btn ViewEvent active"       onclick="toggleType('ViewEvent',this)">View</button>
+      <button class="type-btn ClickEvent active"      onclick="toggleType('ClickEvent',this)">Click</button>
+      <button class="type-btn PurchaseEvent active"   onclick="toggleType('PurchaseEvent',this)">Purchase</button>
+      <button class="type-btn ImpressionEvent active" onclick="toggleType('ImpressionEvent',this)">Impression</button>
+    </div>
+    <div class="seed-group">
+      <input id="seedCount" type="number" min="1" max="500" value="20">
+      <select id="seedType">
+        <option value="random">random</option>
+        <option value="click">click</option>
+        <option value="view">view</option>
+        <option value="purchase">purchase</option>
+        <option value="impression">impression</option>
+      </select>
+      <button id="seedBtn" onclick="seedEvents()">Seed</button>
+    </div>
+    <button class="ctrl-btn" onclick="togglePause()" id="pauseBtn">Pause</button>
+    <button class="ctrl-btn" onclick="clearFeed()">Clear</button>
+    <button class="ctrl-btn" onclick="discardAll()" title="Also clears server replay cache">Discard All</button>
   </div>
-  <div class="seed-group">
-    <input id="seedCount" type="number" min="1" max="500" value="20">
-    <select id="seedType">
-      <option value="random">random</option>
-      <option value="click">click</option>
-      <option value="view">view</option>
-      <option value="purchase">purchase</option>
-      <option value="impression">impression</option>
-    </select>
-    <button id="seedBtn" onclick="seedEvents()">Seed</button>
+  <div id="feed">
+    <div id="empty-state">
+      <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#2d3748" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0H3"/>
+      </svg>
+      <p>Waiting for events from Kafka…</p>
+    </div>
   </div>
-  <button class="ctrl-btn" onclick="togglePause()" id="pauseBtn">Pause</button>
-  <button class="ctrl-btn" onclick="clearFeed()">Clear</button>
-  <button class="ctrl-btn" onclick="discardAll()" title="Clear screen and discard server replay cache — events won't reappear on refresh">Discard All</button>
+</div>
+
+<!-- ── ARCHITECTURE TAB ──────────────────────────────────────────── -->
+<div id="tab-arch" class="tab-panel">
+  <div class="arch-inner">
+
+    <div>
+      <div class="arch-section-title">Ingestion Layer</div>
+      <div class="arch-flow">
+        <div class="arch-node">
+          <div class="arch-node-title"><span class="status-dot" id="dot-app"></span>Ktor HTTP :8080</div>
+          <div class="arch-node-sub">Netty engine</div>
+          <span class="arch-node-badge">Kotlin / JVM 23</span>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <div class="arch-node-title"><span class="status-dot" id="dot-kafka"></span>Kafka</div>
+          <div class="arch-node-sub">user-events topic</div>
+          <span class="arch-node-badge">kafka-clients 3.7</span>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <div class="arch-node-title"><span class="status-dot" id="dot-processor"></span>EventProcessor</div>
+          <div class="arch-node-sub">Kotlin Flow consumer</div>
+          <span class="arch-node-badge">SupervisorScope</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="arch-section-title">State &amp; Learning Layer</div>
+      <div class="arch-flow">
+        <div class="arch-node">
+          <div class="arch-node-title"><span class="status-dot" id="dot-redis"></span>Redis</div>
+          <div class="arch-node-sub">Sessions · Features · Popularity</div>
+          <span class="arch-node-badge">Lettuce coroutines</span>
+        </div>
+        <div class="arch-arrow">↔</div>
+        <div class="arch-node">
+          <div class="arch-node-title">OnlineFM</div>
+          <div class="arch-node-sub">AdaGrad SGD k=16</div>
+          <span class="arch-node-badge">Custom Kotlin</span>
+        </div>
+        <div class="arch-arrow">↔</div>
+        <div class="arch-node">
+          <div class="arch-node-title">SessionDecayJob</div>
+          <div class="arch-node-sub">Exp decay · 15 min sweep</div>
+          <span class="arch-node-badge">t½ = 4 h</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="arch-section-title">Serving Layer</div>
+      <div class="arch-flow">
+        <div class="arch-node">
+          <div class="arch-node-title">ScoringEngine</div>
+          <div class="arch-node-sub">Composite score</div>
+          <span class="arch-node-badge">session·0.4 + content·0.35 + pop·0.15 + recency·0.1</span>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <div class="arch-node-title">AbAssigner</div>
+          <div class="arch-node-sub">SHA-256 deterministic</div>
+          <span class="arch-node-badge">Redis TTL 7 days</span>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <div class="arch-node-title">GET /api/v1/recommendations</div>
+          <div class="arch-node-sub">Ranked · variant-tagged</div>
+          <span class="arch-node-badge">JSON · kotlinx</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="arch-section-title">Observability</div>
+      <div class="arch-flow">
+        <div class="arch-node">
+          <div class="arch-node-title">Micrometer</div>
+          <div class="arch-node-sub">Events · Latency · FM updates</div>
+          <span class="arch-node-badge">Prometheus registry</span>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <div class="arch-node-title">GET /metrics</div>
+          <div class="arch-node-sub">Prometheus text format</div>
+          <span class="arch-node-badge">scrape interval: any</span>
+        </div>
+        <div class="arch-arrow">·</div>
+        <div class="arch-node">
+          <div class="arch-node-title">SSE /events/stream</div>
+          <div class="arch-node-sub">replay=50 · 30s heartbeat</div>
+          <span class="arch-node-badge">Ktor SSE plugin</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="arch-section-title">Component Status</div>
+      <div class="arch-row">
+        <div class="arch-col">
+          <div class="arch-col-label">Health checks</div>
+          <div class="arch-node" style="min-width:180px">
+            <div class="arch-node-title"><span class="status-dot" id="hdot-app"></span>Application</div>
+            <div class="arch-node-sub" id="htext-app">checking…</div>
+          </div>
+          <div class="arch-node" style="min-width:180px">
+            <div class="arch-node-title"><span class="status-dot" id="hdot-kafka"></span>Kafka</div>
+            <div class="arch-node-sub" id="htext-kafka">checking…</div>
+          </div>
+          <div class="arch-node" style="min-width:180px">
+            <div class="arch-node-title"><span class="status-dot" id="hdot-redis"></span>Redis</div>
+            <div class="arch-node-sub" id="htext-redis">checking…</div>
+          </div>
+        </div>
+        <div class="arch-col">
+          <div class="arch-col-label">Pipeline</div>
+          <div class="arch-node" style="min-width:180px">
+            <div class="arch-node-title"><span class="status-dot" id="hdot-proc"></span>EventProcessor</div>
+            <div class="arch-node-sub" id="htext-proc">checking…</div>
+          </div>
+          <div class="arch-node" style="min-width:180px">
+            <div class="arch-node-title">Uptime</div>
+            <div class="arch-node-sub" id="htext-uptime">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── PIPELINE STATS TAB ────────────────────────────────────────── -->
+<div id="tab-stats" class="tab-panel">
+  <div class="metrics-inner">
+
+    <div class="stat-grid" id="stats-cards">
+      <div class="stat-card"><div class="stat-card-label">Total Events Processed</div><div class="stat-card-value" id="sc-total">—</div><div class="stat-card-sub">since server start</div></div>
+      <div class="stat-card"><div class="stat-card-label">Events / sec</div><div class="stat-card-value" id="sc-rate">—</div><div class="stat-card-sub">rolling 3 s</div></div>
+      <div class="stat-card"><div class="stat-card-label">Redis Keys</div><div class="stat-card-value" id="sc-redis">—</div><div class="stat-card-sub">approximate DBSIZE</div></div>
+      <div class="stat-card"><div class="stat-card-label">Uptime</div><div class="stat-card-value" id="sc-uptime">—</div><div class="stat-card-sub">server process</div></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-title">Events / second (last 60 samples)</div>
+      <div class="chart-wrap"><canvas id="chart-throughput"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-title">Cumulative event type breakdown</div>
+      <div class="chart-wrap-tall"><canvas id="chart-types"></canvas></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── MODEL TAB ─────────────────────────────────────────────────── -->
+<div id="tab-model" class="tab-panel">
+  <div class="metrics-inner">
+
+    <div class="stat-grid">
+      <div class="stat-card green">
+        <div class="stat-card-label">FM Total Updates</div>
+        <div class="stat-card-value" id="m-updates">—</div>
+        <div class="stat-card-sub">learn() calls since start</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Running Loss</div>
+        <div class="stat-card-value" id="m-loss">—</div>
+        <div class="stat-card-sub">EWMA |pred − label|</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Last FM Update</div>
+        <div class="stat-card-value" style="font-size:1.2rem" id="m-lastupdate">—</div>
+        <div class="stat-card-sub">wall clock time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">FM Config</div>
+        <div class="stat-card-value" style="font-size:1.1rem">k=16</div>
+        <div class="stat-card-sub">AdaGrad SGD · lr 0.01 · reg 0.001</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-title">Running loss over time (last 60 samples)</div>
+      <div class="chart-wrap"><canvas id="chart-loss"></canvas></div>
+    </div>
+
+    <div>
+      <div class="arch-section-title" style="margin-bottom:14px">Recommendation Latency</div>
+      <div class="latency-row">
+        <div class="latency-card" id="lat-p50">
+          <div class="latency-card-label">p50</div>
+          <div class="latency-card-value">—</div>
+          <div class="latency-card-unit">ms</div>
+        </div>
+        <div class="latency-card" id="lat-p95">
+          <div class="latency-card-label">p95</div>
+          <div class="latency-card-value">—</div>
+          <div class="latency-card-unit">ms</div>
+        </div>
+        <div class="latency-card" id="lat-p99">
+          <div class="latency-card-label">p99</div>
+          <div class="latency-card-value">—</div>
+          <div class="latency-card-unit">ms</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-title">Recommendation latency p99 over time (last 60 samples, ms)</div>
+      <div class="chart-wrap"><canvas id="chart-latency"></canvas></div>
+    </div>
+
+  </div>
 </div>
 
 <div id="toast"></div>
 
-<div id="feed">
-  <div id="empty-state">
-    <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#2d3748" stroke-width="1.5">
-      <path stroke-linecap="round" stroke-linejoin="round"
-        d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0H3"/>
-    </svg>
-    <p>Waiting for events from Kafka…</p>
-  </div>
-</div>
-
 <script>
-  const feed     = document.getElementById('feed');
-  const statusEl = document.getElementById('status');
-  const statsEl  = document.getElementById('stats');
-  const filterEl = document.getElementById('filter');
-  const emptyEl  = document.getElementById('empty-state');
-
-  let total      = 0;
-  let paused     = false;
-  const MAX_CARDS = 200;
-  const hiddenTypes = new Set();
-
-  // ── SSE connection ──────────────────────────────────────────────
-  const source = new EventSource('/events/stream');
-
-  source.onopen = () => setStatus('open', 'connected');
-  source.onerror = () => {
-    if (!paused) setStatus('closed', 'reconnecting…');
-  };
-
-  // Keep-alive pings from the server — ignore, onopen already handled status
-  source.addEventListener('ping', () => {});
-
-  // Generic fallback (shouldn't fire when named events are sent)
-  source.onmessage = (e) => handleEvent('Event', e.data);
-
-  // One listener per sealed-class subtype
-  ['ViewEvent', 'ClickEvent', 'PurchaseEvent', 'ImpressionEvent'].forEach(type => {
-    source.addEventListener(type, (e) => handleEvent(type, e.data));
+// ── Tab switching ─────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
   });
+});
 
-  // ── Event handling ───────────────────────────────────────────────
-  function handleEvent(type, rawJson) {
-    if (paused) return;
-    if (hiddenTypes.has(type)) return;
+// ── SSE connection ────────────────────────────────────────────────
+const feedEl   = document.getElementById('feed');
+const statusEl = document.getElementById('status');
+const statsPil = document.getElementById('stats-pill');
+const filterEl = document.getElementById('filter');
+const emptyEl  = document.getElementById('empty-state');
 
-    let parsed;
-    try { parsed = JSON.parse(rawJson); } catch { parsed = {}; }
+let total = 0, paused = false;
+const MAX_CARDS = 200;
+const hiddenTypes = new Set();
 
-    const filterText = filterEl.value.toLowerCase().trim();
-    if (filterText && !rawJson.toLowerCase().includes(filterText)) return;
+const source = new EventSource('/events/stream');
+source.onopen  = () => setStatus('open', 'connected');
+source.onerror = () => { if (!paused) setStatus('closed', 'reconnecting…'); };
+source.addEventListener('ping', () => {});
+source.onmessage = (e) => handleFeedEvent('Event', e.data);
+['ViewEvent','ClickEvent','PurchaseEvent','ImpressionEvent'].forEach(t =>
+  source.addEventListener(t, e => handleFeedEvent(t, e.data))
+);
 
-    total++;
-    statsEl.textContent = total.toLocaleString() + ' events';
-    if (emptyEl) emptyEl.remove();
+function handleFeedEvent(type, rawJson) {
+  if (paused || hiddenTypes.has(type)) return;
+  let parsed; try { parsed = JSON.parse(rawJson); } catch { parsed = {}; }
+  const ft = filterEl.value.toLowerCase().trim();
+  if (ft && !rawJson.toLowerCase().includes(ft)) return;
+  total++;
+  statsPil.textContent = total.toLocaleString() + ' events';
+  if (emptyEl) emptyEl.remove();
+  const card = document.createElement('div');
+  card.className = `event-card ${type}`;
+  card.innerHTML = `
+    <div class="event-header">
+      <span class="event-type">${type.replace('Event','')}</span>
+      <span class="event-user">${parsed.userId||'—'}</span>
+      <span class="event-item">${itemSummary(type,parsed)}</span>
+      <span class="event-time">${new Date().toLocaleTimeString()}</span>
+      <span class="expand-icon">▶</span>
+    </div>
+    <pre class="event-payload">${highlight(JSON.stringify(parsed,null,2))}</pre>`;
+  card.addEventListener('click', () => card.classList.toggle('expanded'));
+  feedEl.insertBefore(card, feedEl.firstChild);
+  while (feedEl.children.length > MAX_CARDS) feedEl.removeChild(feedEl.lastChild);
+}
 
-    const card = document.createElement('div');
-    card.className = `event-card ${type}`;
-    card.innerHTML = `
-      <div class="event-header">
-        <span class="event-type">${type.replace('Event', '')}</span>
-        <span class="event-user">${parsed.userId || '—'}</span>
-        <span class="event-item">${itemSummary(type, parsed)}</span>
-        <span class="event-time">${new Date().toLocaleTimeString()}</span>
-        <span class="expand-icon">▶</span>
-      </div>
-      <pre class="event-payload">${highlight(JSON.stringify(parsed, null, 2))}</pre>
-    `;
-    card.addEventListener('click', () => card.classList.toggle('expanded'));
+function itemSummary(type, p) {
+  if (type === 'ImpressionEvent') return p.itemIds ? `[${p.itemIds.slice(0,3).join(', ')}${p.itemIds.length>3?'…':''}]` : '';
+  return p.itemId ? `· ${p.itemId}` : '';
+}
 
-    feed.insertBefore(card, feed.firstChild);
-    while (feed.children.length > MAX_CARDS) feed.removeChild(feed.lastChild);
-  }
+function highlight(json) {
+  return escHtml(json)
+    .replace(/"([^"]+)"(?=\s*:)/g, '<span class="json-key">"$1"</span>')
+    .replace(/:\s*"([^"]*)"/g, ': <span class="json-str">"$1"</span>')
+    .replace(/:\s*(-?\d+\.?\d*([eE][+-]?\d+)?)/g, ': <span class="json-num">$1</span>')
+    .replace(/:\s*(true|false)/g, ': <span class="json-bool">$1</span>')
+    .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
+}
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  function itemSummary(type, p) {
-    if (type === 'ImpressionEvent') return p.itemIds ? `[${p.itemIds.slice(0,3).join(', ')}${p.itemIds.length > 3 ? '…' : ''}]` : '';
-    return p.itemId ? `· ${p.itemId}` : '';
-  }
+function setStatus(cls, text) { statusEl.className = cls; statusEl.textContent = text; }
+function toggleType(type, btn) {
+  hiddenTypes.has(type) ? (hiddenTypes.delete(type), btn.classList.add('active'))
+                        : (hiddenTypes.add(type),    btn.classList.remove('active'));
+}
+function togglePause() {
+  paused = !paused;
+  document.getElementById('pauseBtn').textContent = paused ? 'Resume' : 'Pause';
+  setStatus(paused ? 'paused' : 'open', paused ? 'paused' : 'connected');
+}
+function clearFeed() { feedEl.innerHTML=''; total=0; statsPil.textContent='0 events'; }
+async function discardAll() {
+  clearFeed();
+  try { await fetch('/events/clear',{method:'POST'}); showToast('Replay cache cleared',''); }
+  catch(e) { showToast('Could not clear cache: '+e.message, 'error'); }
+}
 
-  // ── JSON syntax highlighting ─────────────────────────────────────
-  function highlight(json) {
-    return escapeHtml(json)
-      .replace(/"([^"]+)"(?=\s*:)/g, '<span class="json-key">"$1"</span>')
-      .replace(/:\s*"([^"]*)"/g, ': <span class="json-str">"$1"</span>')
-      .replace(/:\s*(-?\d+\.?\d*([eE][+-]?\d+)?)/g, ': <span class="json-num">$1</span>')
-      .replace(/:\s*(true|false)/g, ': <span class="json-bool">$1</span>')
-      .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
-  }
+// ── Seed controls ─────────────────────────────────────────────────
+async function seedEvents() {
+  const btn   = document.getElementById('seedBtn');
+  const count = Math.min(500, Math.max(1, parseInt(document.getElementById('seedCount').value)||20));
+  const type  = document.getElementById('seedType').value;
+  btn.disabled=true; btn.textContent='Seeding…';
+  try {
+    const res  = await fetch(`/dev/seed?count=${count}&type=${type}`,{method:'POST'});
+    const data = await res.json();
+    if (res.ok) {
+      const bd = Object.entries(data.types).map(([t,n])=>`${n} ${t.replace('Event','')}`).join(', ');
+      showToast(`Seeded ${data.sent} events — ${bd}`, '');
+    } else { showToast('Seed failed — is Kafka running?','error'); }
+  } catch(e) { showToast('Seed request failed: '+e.message,'error'); }
+  finally { btn.disabled=false; btn.textContent='Seed'; }
+}
 
-  function escapeHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
+// ── Toast ─────────────────────────────────────────────────────────
+let toastTimer=null;
+function showToast(msg,cls) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=(cls?cls+' ':'')+'show';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{ el.className=cls||''; },4000);
+}
 
-  // ── Controls ─────────────────────────────────────────────────────
-  function toggleType(type, btn) {
-    if (hiddenTypes.has(type)) {
-      hiddenTypes.delete(type);
-      btn.classList.add('active');
-    } else {
-      hiddenTypes.add(type);
-      btn.classList.remove('active');
-    }
-  }
+// ── Chart.js defaults ─────────────────────────────────────────────
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#1e2235';
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
 
-  function togglePause() {
-    paused = !paused;
-    document.getElementById('pauseBtn').textContent = paused ? 'Resume' : 'Pause';
-    setStatus(paused ? 'paused' : 'open', paused ? 'paused' : 'connected');
-  }
-
-  function clearFeed() {
-    feed.innerHTML = '';
-    total = 0;
-    statsEl.textContent = '0 events';
-  }
-
-  async function discardAll() {
-    clearFeed();
-    try {
-      await fetch('/events/clear', { method: 'POST' });
-      showToast('Replay cache cleared — refresh is now clean', false);
-    } catch (e) {
-      showToast('Could not clear server cache: ' + e.message, true);
-    }
-  }
-
-  function setStatus(cls, text) {
-    statusEl.className = cls;
-    statusEl.textContent = text;
-  }
-
-  // ── Seed events ──────────────────────────────────────────────────
-  async function seedEvents() {
-    const btn   = document.getElementById('seedBtn');
-    const count = Math.min(500, Math.max(1, parseInt(document.getElementById('seedCount').value) || 20));
-    const type  = document.getElementById('seedType').value;
-    btn.disabled = true;
-    btn.textContent = 'Seeding…';
-    try {
-      const res  = await fetch(`/dev/seed?count=${count}&type=${type}`, { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        const breakdown = Object.entries(data.types)
-          .map(([t, n]) => `${n} ${t.replace('Event', '')}`)
-          .join(', ');
-        showToast(`Seeded ${data.sent} events — ${breakdown}`, false);
-      } else {
-        showToast('Seed failed — is Kafka running?', true);
+function mkSparkline(id, label, color) {
+  const ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{ label, data: [], borderColor: color, backgroundColor: color+'22',
+        borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4 }]
+    },
+    options: {
+      animation: false, responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { beginAtZero: true, grid: { color: '#1e2235' },
+             ticks: { maxTicksLimit: 4, font: { size: 11 } } }
       }
-    } catch (e) {
-      showToast('Seed request failed: ' + e.message, true);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Seed';
+    }
+  });
+}
+
+function pushSparkline(chart, value, maxPoints = 60) {
+  const now = new Date().toLocaleTimeString();
+  chart.data.labels.push(now);
+  chart.data.datasets[0].data.push(value);
+  if (chart.data.labels.length > maxPoints) {
+    chart.data.labels.shift();
+    chart.data.datasets[0].data.shift();
+  }
+  chart.update('none');
+}
+
+const chartThroughput = mkSparkline('chart-throughput', 'events/s', '#a78bfa');
+const chartLoss       = mkSparkline('chart-loss',       'loss',     '#f59e0b');
+const chartLatency    = mkSparkline('chart-latency',    'p99 ms',   '#38bdf8');
+
+// Event type bar chart
+const typeColors = {
+  ViewEvent:       '#6366f1',
+  ClickEvent:      '#a855f7',
+  PurchaseEvent:   '#10b981',
+  ImpressionEvent: '#3b82f6',
+};
+const typeChart = (() => {
+  const ctx = document.getElementById('chart-types').getContext('2d');
+  return new Chart(ctx, {
+    type: 'bar',
+    data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderRadius: 4 }] },
+    options: {
+      indexAxis: 'y',
+      animation: false, responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: '#1e2235' },
+             ticks: { font: { size: 11 }, maxTicksLimit: 5 } },
+        y: { grid: { display: false }, ticks: { font: { size: 12 } } }
+      }
+    }
+  });
+})();
+
+// ── Stats polling ─────────────────────────────────────────────────
+let prevTotal = null;
+let prevPollMs = null;
+
+async function pollStats() {
+  let data;
+  try { const r = await fetch('/api/v1/stats'); data = await r.json(); }
+  catch { return; }
+
+  // Throughput
+  const nowTotal = Object.values(data.eventsProcessed).reduce((a,b)=>a+b, 0);
+  const nowMs    = Date.now();
+  if (prevTotal !== null && prevPollMs !== null) {
+    const rate = (nowTotal - prevTotal) / ((nowMs - prevPollMs) / 1000);
+    pushSparkline(chartThroughput, Math.max(0, parseFloat(rate.toFixed(2))));
+    document.getElementById('sc-rate').textContent = rate.toFixed(1);
+  }
+  prevTotal = nowTotal; prevPollMs = nowMs;
+
+  // Stat cards
+  document.getElementById('sc-total').textContent  = nowTotal.toLocaleString();
+  document.getElementById('sc-redis').textContent  = data.redisApproxKeys >= 0 ? data.redisApproxKeys.toLocaleString() : 'N/A';
+  document.getElementById('sc-uptime').textContent = fmtUptime(data.uptimeMs);
+
+  // Event type bar chart
+  const types  = Object.keys(data.eventsProcessed);
+  const counts = types.map(t => data.eventsProcessed[t]);
+  typeChart.data.labels                           = types.map(t => t.replace('Event',''));
+  typeChart.data.datasets[0].data                = counts;
+  typeChart.data.datasets[0].backgroundColor     = types.map(t => typeColors[t] || '#64748b');
+  typeChart.update('none');
+
+  // Model tab
+  document.getElementById('m-updates').textContent   = data.fmTotalUpdates.toLocaleString();
+  document.getElementById('m-loss').textContent      = data.fmRunningLoss.toFixed(4);
+  document.getElementById('m-lastupdate').textContent = data.fmLastUpdateMs > 0
+    ? new Date(data.fmLastUpdateMs).toLocaleTimeString() : 'never';
+
+  pushSparkline(chartLoss, parseFloat(data.fmRunningLoss.toFixed(4)));
+  pushSparkline(chartLatency, parseFloat(data.recLatencyP99Ms.toFixed(2)));
+
+  setLatencyCard('lat-p50', data.recLatencyP50Ms);
+  setLatencyCard('lat-p95', data.recLatencyP95Ms);
+  setLatencyCard('lat-p99', data.recLatencyP99Ms);
+
+  // Processor status card (uptime also used in arch tab)
+  document.getElementById('sc-uptime').textContent = fmtUptime(data.uptimeMs);
+  document.getElementById('htext-uptime').textContent = fmtUptime(data.uptimeMs);
+  const procDot  = document.getElementById('hdot-proc');
+  const procText = document.getElementById('htext-proc');
+  if (data.processorRunning) {
+    procDot.className = 'status-dot ok';
+    procText.textContent = 'running';
+    document.getElementById('dot-processor').className = 'status-dot ok';
+  } else {
+    procDot.className = 'status-dot warn';
+    procText.textContent = 'not started (Redis unavailable?)';
+    document.getElementById('dot-processor').className = 'status-dot warn';
+  }
+}
+
+function setLatencyCard(id, ms) {
+  const el  = document.getElementById(id);
+  const val = el.querySelector('.latency-card-value');
+  val.textContent = ms > 0 ? ms.toFixed(1) : '—';
+  el.className = 'latency-card ' + (ms <= 0 ? '' : ms < 50 ? 'green' : ms < 200 ? 'amber' : 'red');
+}
+
+function fmtUptime(ms) {
+  if (!ms) return '—';
+  const s = Math.floor(ms/1000), m = Math.floor(s/60), h = Math.floor(m/60), d = Math.floor(h/24);
+  if (d > 0) return `${d}d ${h%24}h`;
+  if (h > 0) return `${h}h ${m%60}m`;
+  if (m > 0) return `${m}m ${s%60}s`;
+  return `${s}s`;
+}
+
+// ── Health polling (for Architecture tab) ─────────────────────────
+async function pollHealth() {
+  const checks = [
+    { url: '/health',       dot: 'hdot-app',   txt: 'htext-app',   dflow: 'dot-app'   },
+    { url: '/health/kafka', dot: 'hdot-kafka',  txt: 'htext-kafka', dflow: 'dot-kafka'  },
+    { url: '/health/redis', dot: 'hdot-redis',  txt: 'htext-redis', dflow: 'dot-redis'  },
+  ];
+  for (const c of checks) {
+    try {
+      const r = await fetch(c.url);
+      const cls = r.ok ? 'ok' : 'warn';
+      document.getElementById(c.dot).className  = `status-dot ${cls}`;
+      document.getElementById(c.txt).textContent = r.ok ? 'ok' : `HTTP ${r.status}`;
+      if (c.dflow) document.getElementById(c.dflow).className = `status-dot ${cls}`;
+    } catch {
+      document.getElementById(c.dot).className  = 'status-dot error';
+      document.getElementById(c.txt).textContent = 'unreachable';
+      if (c.dflow) document.getElementById(c.dflow).className = 'status-dot error';
     }
   }
+}
 
-  let toastTimer = null;
-  function showToast(msg, isError) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.className   = isError ? 'error show' : 'show';
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { el.className = isError ? 'error' : ''; }, 4000);
-  }
+// Boot polling
+pollStats();
+pollHealth();
+setInterval(pollStats,  3_000);
+setInterval(pollHealth, 10_000);
 </script>
 </body>
 </html>

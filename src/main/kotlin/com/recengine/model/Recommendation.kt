@@ -48,3 +48,17 @@ data class ModelMetrics(
 
 @Serializable
 data class TrendingResponse(val items: List<String>, val window: String)
+
+@Serializable
+data class PipelineStats(
+    val eventsProcessed:  Map<String, Long>,
+    val fmTotalUpdates:   Long,
+    val fmLastUpdateMs:   Long,
+    val fmRunningLoss:    Double,
+    val recLatencyP50Ms:  Double,
+    val recLatencyP95Ms:  Double,
+    val recLatencyP99Ms:  Double,
+    val processorRunning: Boolean,
+    val uptimeMs:         Long,
+    val redisApproxKeys:  Long,
+)

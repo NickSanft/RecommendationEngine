@@ -11,6 +11,7 @@ import com.recengine.routing.AbAssigner
 import com.recengine.routing.devRoutes
 import com.recengine.routing.feedbackRoutes
 import com.recengine.routing.recommendationRoutes
+import com.recengine.routing.statsRoutes
 import com.recengine.ml.FeatureVectorBuilder
 import com.recengine.ml.OnlineFM
 import com.recengine.ml.ScoringEngine
@@ -109,17 +110,21 @@ fun Application.module() {
 
     // ── Redis + ML + Pipeline ───────────────────────────────────────
     // Wrapped in try-catch so the app starts even when Redis is unavailable.
-    var redisFactory: RedisClientFactory? = null
-    var processor: EventProcessor?        = null
-    var decayJob: SessionDecayJob?        = null
+    var redisFactory: RedisClientFactory?                        = null
+    var processor: EventProcessor?                               = null
+    var decayJob: SessionDecayJob?                               = null
+    var capturedFm: OnlineFM?                                    = null
+    var capturedRedis: io.lettuce.core.api.coroutines.RedisCoroutinesCommands<String, String>? = null
 
     try {
         redisFactory = RedisClientFactory(config.redis)
         val redis    = redisFactory.coroutineCommands()
+        capturedRedis = redis
 
         val sessionStore    = SessionStore(redis, config.redis)
         val featureStore    = FeatureStore(redis, json)
         val fm              = OnlineFM(config.model.fm)
+        capturedFm          = fm
         val featureBuilder  = FeatureVectorBuilder(config.model.fm.numFeatures)
 
         val abAssigner = AbAssigner(redis, config.ab)
@@ -157,6 +162,14 @@ fun Application.module() {
     } catch (e: Exception) {
         logger.warn(e) { "Redis unavailable — EventProcessor and SessionDecayJob not started" }
     }
+
+    // ── Stats API ───────────────────────────────────────────────────
+    statsRoutes(
+        fm               = capturedFm,
+        isProcessorRunning = processor != null,
+        startTimeMs      = startTimeMs,
+        redis            = capturedRedis,
+    )
 
     // ── Graceful shutdown ───────────────────────────────────────────
     val capturedProcessor = processor
