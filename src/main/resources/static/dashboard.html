@@ -376,6 +376,83 @@
       font-size: 0.69rem; color: #475569;
       font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
     }
+
+    /* ── Feed event pipeline annotation ──────────────────────────── */
+    .event-annotation {
+      font-size: 0.67rem;
+      color: #2d3748;
+      padding: 4px 2px 0;
+      font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
+      transition: color 0.15s;
+    }
+    .event-card:hover .event-annotation { color: #4b5568; }
+
+    /* ── About tab ────────────────────────────────────────────────── */
+    #tab-about { overflow-y: auto; }
+    .about-inner {
+      padding: 40px 48px;
+      max-width: 860px;
+      display: flex;
+      flex-direction: column;
+      gap: 44px;
+    }
+    .about-hero { border-bottom: 1px solid #1e2235; padding-bottom: 32px; }
+    .about-hero h2 { font-size: 1.4rem; font-weight: 700; color: #e2e8f0; margin-bottom: 12px; }
+    .about-hero p  { font-size: 0.88rem; color: #94a3b8; line-height: 1.75; max-width: 680px; }
+    .about-pills   { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .about-pill    {
+      font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+      background: #1e2235; color: #94a3b8; border: 1px solid #2d3748;
+    }
+    .about-section-label {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: #475569; margin-bottom: 18px;
+    }
+    .about-body { font-size: 0.86rem; color: #94a3b8; line-height: 1.75; max-width: 680px; }
+    .about-body + .about-body { margin-top: 10px; }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .tech-card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 16px 18px; }
+    .tech-card-name { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; margin-bottom: 3px; }
+    .tech-card-role { font-size: 0.7rem; color: #a78bfa; margin-bottom: 9px; }
+    .tech-card-why  { font-size: 0.76rem; color: #64748b; line-height: 1.6; }
+
+    .flow-steps { display: flex; flex-direction: column; }
+    .flow-step  { display: flex; gap: 16px; position: relative; }
+    .flow-step:not(:last-child)::after {
+      content: ''; position: absolute; left: 13px; top: 30px; bottom: -10px;
+      width: 1px; background: #2d3748;
+    }
+    .flow-num {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: #312e81; color: #a5b4fc;
+      font-size: 0.75rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .flow-content { padding-bottom: 24px; }
+    .flow-title { font-size: 0.88rem; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+    .flow-desc  { font-size: 0.78rem; color: #64748b; line-height: 1.65; }
+    .flow-desc code { color: #7dd3fc; font-size: 0.75rem; }
+
+    .formula-box {
+      background: #0a0c14; border: 1px solid #1e2235; border-radius: 8px;
+      padding: 16px 20px; margin: 14px 0;
+      font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
+      font-size: 0.8rem; color: #7dd3fc; line-height: 1.9; overflow-x: auto;
+    }
+
+    .file-list { display: flex; flex-direction: column; gap: 6px; }
+    .file-item {
+      display: flex; align-items: baseline; gap: 14px;
+      padding: 9px 14px; background: #1a1d2e; border: 1px solid #2d3748; border-radius: 6px;
+      font-size: 0.78rem;
+    }
+    .file-path { font-family: 'Cascadia Code','Fira Code','Consolas',monospace; color: #7dd3fc; flex-shrink: 0; }
+    .file-desc { color: #64748b; }
   </style>
 </head>
 <body>
@@ -387,6 +464,7 @@
     <button class="tab-btn" data-tab="arch">Architecture</button>
     <button class="tab-btn" data-tab="stats">Pipeline Stats</button>
     <button class="tab-btn" data-tab="model">Model</button>
+    <button class="tab-btn" data-tab="about">About</button>
   </nav>
   <div id="header-right">
     <span id="status" class="connecting">connecting…</span>
@@ -667,6 +745,147 @@
   </div>
 </div>
 
+<!-- ── ABOUT TAB ──────────────────────────────────────────────────── -->
+<div id="tab-about" class="tab-panel">
+  <div class="about-inner">
+
+    <div class="about-hero">
+      <h2>Real-Time Streaming Recommendation Engine</h2>
+      <p>A production-grade ML pipeline that learns from user behaviour in real time and serves personalised recommendations with sub-50ms latency. Built entirely in Kotlin on the JVM, using a streaming-first architecture that mirrors what you'd find at a mid-scale tech company — event-driven ingest, online learning, and Redis-backed state, all wired together with Kotlin coroutines.</p>
+      <div class="about-pills">
+        <span class="about-pill">Kotlin 2.1.20</span>
+        <span class="about-pill">Ktor 3.1.2</span>
+        <span class="about-pill">Apache Kafka</span>
+        <span class="about-pill">Redis + Lettuce</span>
+        <span class="about-pill">Factorization Machines</span>
+        <span class="about-pill">AdaGrad SGD</span>
+        <span class="about-pill">Micrometer / Prometheus</span>
+        <span class="about-pill">Server-Sent Events</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="about-section-label">The Problem</div>
+      <p class="about-body">Recommendation systems are ubiquitous but surprisingly hard to build well. A naïve approach — show popular items, or items similar to the last one clicked — ignores in-session context, degrades badly for new users, and can't adapt to shifting intent within a single browse session.</p>
+      <p class="about-body" style="margin-top:10px">This system addresses each of those failure modes: an online Factorization Machine learns (user × item × context) interactions incrementally, a session vector with exponential decay tracks within-session intent, a popularity signal prevents cold corners of the catalogue, and a deterministic A/B layer makes every design decision measurable — all without a batch retraining pipeline.</p>
+    </div>
+
+    <div>
+      <div class="about-section-label">Technology Choices</div>
+      <div class="tech-grid">
+        <div class="tech-card">
+          <div class="tech-card-name">Kotlin + Ktor</div>
+          <div class="tech-card-role">Language &amp; HTTP framework</div>
+          <div class="tech-card-why">Coroutines make async I/O read like sequential code. Ktor's lightweight DSL avoids Spring Boot's reflection overhead — important for tight latency budgets.</div>
+        </div>
+        <div class="tech-card">
+          <div class="tech-card-name">Apache Kafka</div>
+          <div class="tech-card-role">Event bus &amp; durability layer</div>
+          <div class="tech-card-why">Decouples event producers from consumers, enables offset replay for model backfill, and provides at-least-once delivery without a custom queue or cron job.</div>
+        </div>
+        <div class="tech-card">
+          <div class="tech-card-name">Redis</div>
+          <div class="tech-card-role">State store</div>
+          <div class="tech-card-why">Hash fields for session vectors, sorted sets for O(log N) top-K popularity, atomic INCR for counters. The Lettuce coroutines client keeps every access non-blocking.</div>
+        </div>
+        <div class="tech-card">
+          <div class="tech-card-name">Factorization Machine</div>
+          <div class="tech-card-role">Core ML model</div>
+          <div class="tech-card-why">Generalises matrix factorisation to arbitrary sparse features. Captures (user × item × context) interactions that plain cosine similarity misses, with no cold-start cliff for new users.</div>
+        </div>
+        <div class="tech-card">
+          <div class="tech-card-name">AdaGrad SGD</div>
+          <div class="tech-card-role">Optimiser</div>
+          <div class="tech-card-why">Per-parameter adaptive learning rates. Critical for sparse recommendation data where popular items see thousands of gradient updates but rare features see only a handful.</div>
+        </div>
+        <div class="tech-card">
+          <div class="tech-card-name">Micrometer + Prometheus</div>
+          <div class="tech-card-role">Observability</div>
+          <div class="tech-card-why">Vendor-neutral instrumentation facade. Swap the Prometheus registry for Datadog or CloudWatch without touching a single instrumentation call. p99 latencies come free from histograms.</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="about-section-label">How the ML Works</div>
+      <p class="about-body">The core model is a Factorization Machine trained online via AdaGrad SGD. Each event produces a sparse feature vector (userId, itemId, category, hour-of-day, etc.) hashed into a 50,000-bucket space using the hashing trick. The model scores each candidate item using:</p>
+      <div class="formula-box">ŷ(x) = w₀  +  Σᵢ wᵢxᵢ  +  Σᵢ&lt;ⱼ ⟨vᵢ, vⱼ⟩ xᵢxⱼ
+
+where:  vᵢ ∈ ℝᵏ              (k = 16 latent factors per feature)
+        ⟨vᵢ, vⱼ⟩ = Σₗ vᵢₗ·vⱼₗ   (dot product = pairwise interaction strength)
+        ŷ ∈ (0,1) via sigmoid  → interpreted as click probability</div>
+      <p class="about-body">On each click or purchase, OnlineFM.learn() builds the feature vector, runs a forward pass, computes loss = |ŷ − label|, and takes an AdaGrad gradient step. The entire update — including the Redis session write — takes ~1ms in-process.</p>
+      <p class="about-body" style="margin-top:10px">Final ranking blends four signals per candidate: <strong style="color:#e2e8f0">session affinity</strong> (0.40) from the exponentially-decayed session vector, <strong style="color:#e2e8f0">FM content score</strong> (0.35), <strong style="color:#e2e8f0">popularity</strong> (0.15) from Redis sorted sets, and <strong style="color:#e2e8f0">recency</strong> (0.10) based on item age. You can inspect these breakdowns live in the Model tab's score inspector.</p>
+    </div>
+
+    <div>
+      <div class="about-section-label">Data Flow — Step by Step</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-num">1</div>
+          <div class="flow-content">
+            <div class="flow-title">Event Ingest</div>
+            <div class="flow-desc">A user action arrives at <code>POST /api/v1/events/{type}</code>. Ktor deserialises the JSON into a sealed Kotlin event class and hands it to KafkaProducerService, which produces it to the <em>user-events</em> topic.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <div class="flow-content">
+            <div class="flow-title">Kafka → EventProcessor</div>
+            <div class="flow-desc">EventProcessor's Kotlin Flow-based consumer collects the message and fans it out to three handlers in parallel under a SupervisorScope — a failure in one branch doesn't crash the others.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">3</div>
+          <div class="flow-content">
+            <div class="flow-title">Session + Feature Updates</div>
+            <div class="flow-desc">SessionStore writes the item embedding to the user's session vector in Redis (hash), weighted by event type. FeatureStore increments popularity counters in a sorted set via ZINCRBY.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">4</div>
+          <div class="flow-content">
+            <div class="flow-title">Online Learning (clicks &amp; purchases only)</div>
+            <div class="flow-desc">OnlineFM.learn() builds a sparse feature vector, runs a forward pass, computes the gradient against the label (1 for engagement, 0 for impression), and updates weights with AdaGrad. No separate training job needed.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">5</div>
+          <div class="flow-content">
+            <div class="flow-title">Serving</div>
+            <div class="flow-desc">On <code>GET /api/v1/recommendations/{userId}</code>, ScoringEngine fetches the session vector and popularity top-K from Redis, scores candidates with the FM, blends the four signals, and returns a ranked list — all in-process, sub-50ms p50.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">6</div>
+          <div class="flow-content">
+            <div class="flow-title">Session Decay (background)</div>
+            <div class="flow-desc">Every 15 minutes, SessionDecayJob sweeps Redis and applies e^(−λΔt) decay to all session vectors (λ = ln2/14400, so t½ = 4 h). Old interactions fade organically — no hard TTL expiry needed.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="about-section-label">Key Source Files</div>
+      <div class="file-list">
+        <div class="file-item"><span class="file-path">Application.kt</span><span class="file-desc">Ktor bootstrap, lifecycle hooks, module wiring</span></div>
+        <div class="file-item"><span class="file-path">ml/OnlineFM.kt</span><span class="file-desc">Factorization Machine — learn() and score() with AdaGrad SGD</span></div>
+        <div class="file-item"><span class="file-path">ml/ScoringEngine.kt</span><span class="file-desc">Composite ranking — blends FM, session, popularity, recency signals</span></div>
+        <div class="file-item"><span class="file-path">ml/FeatureVectorBuilder.kt</span><span class="file-desc">Hashing trick — maps raw features into fixed 50k-bucket sparse vectors</span></div>
+        <div class="file-item"><span class="file-path">pipeline/EventProcessor.kt</span><span class="file-desc">Kafka Flow consumer — fans events to session, feature, and model handlers</span></div>
+        <div class="file-item"><span class="file-path">pipeline/SessionDecayJob.kt</span><span class="file-desc">Scheduled exponential decay sweep on Redis session vectors</span></div>
+        <div class="file-item"><span class="file-path">redis/SessionStore.kt</span><span class="file-desc">Session vector read/write via Lettuce coroutines</span></div>
+        <div class="file-item"><span class="file-path">redis/FeatureStore.kt</span><span class="file-desc">Popularity sorted sets and item feature storage</span></div>
+        <div class="file-item"><span class="file-path">routing/AbAssigner.kt</span><span class="file-desc">SHA-256 deterministic A/B variant assignment — fully stateless</span></div>
+        <div class="file-item"><span class="file-path">dashboard/EventBroadcaster.kt</span><span class="file-desc">SharedFlow(replay=50) fan-out bridge from Kafka consumer to SSE clients</span></div>
+        <div class="file-item"><span class="file-path">metrics/MetricsRegistry.kt</span><span class="file-desc">Micrometer counters, timers, gauges — Prometheus registry</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -688,6 +907,13 @@ const filterEl = document.getElementById('filter');
 const emptyEl  = document.getElementById('empty-state');
 
 let total = 0, paused = false;
+
+const EVENT_PIPELINE = {
+  ClickEvent:      '↳ OnlineFM.learn(label=1) · SessionStore.update() · FeatureStore.incrementScore()',
+  PurchaseEvent:   '↳ OnlineFM.learn(label=1, 2× reward) · SessionStore.update() · FeatureStore.incrementRevenue()',
+  ViewEvent:       '↳ SessionStore.update(weight=dwellSeconds) — no gradient step',
+  ImpressionEvent: '↳ logged to CTR denominator — no SessionStore write, no gradient step',
+};
 const MAX_CARDS = 200;
 const hiddenTypes = new Set();
 
@@ -718,6 +944,7 @@ function handleFeedEvent(type, rawJson) {
       <span class="event-time">${new Date().toLocaleTimeString()}</span>
       <span class="expand-icon">▶</span>
     </div>
+    <div class="event-annotation">${EVENT_PIPELINE[type]||''}</div>
     <pre class="event-payload">${highlight(JSON.stringify(parsed,null,2))}</pre>`;
   card.addEventListener('click', () => card.classList.toggle('expanded'));
   feedEl.insertBefore(card, feedEl.firstChild);

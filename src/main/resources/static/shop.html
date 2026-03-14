@@ -319,6 +319,49 @@
       border-color: #4a5568;
     }
     .cat-filter-btn:hover { color: var(--text); }
+
+    /* ── "Why recommended?" score popup ────────────────────────────── */
+    #score-popup {
+      position: fixed;
+      z-index: 1000;
+      width: 224px;
+      background: #13151f;
+      border: 1px solid #4338ca;
+      border-radius: 10px;
+      padding: 14px 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.75);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s, transform 0.15s;
+      transform: translateY(6px) scale(0.97);
+    }
+    #score-popup.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+    .why-title { font-size: 0.71rem; font-weight: 700; color: #a78bfa; text-align: center; margin-bottom: 12px; letter-spacing: 0.04em; }
+    .why-row   { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .why-label { font-size: 0.67rem; color: #64748b; width: 66px; flex-shrink: 0; }
+    .why-bar-track { flex: 1; height: 5px; background: #1e2235; border-radius: 3px; overflow: hidden; }
+    .why-bar-fill  { height: 100%; border-radius: 3px; transition: width 0.35s ease; }
+    .why-pct       { font-size: 0.65rem; color: #475569; width: 28px; text-align: right; flex-shrink: 0; }
+    .why-composite { border-top: 1px solid #1e2235; padding-top: 8px; margin-top: 4px; font-size: 0.71rem; color: #94a3b8; text-align: center; }
+    .why-note      { font-size: 0.65rem; color: #374151; text-align: center; margin-top: 4px; }
+
+    .btn-why {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--border2);
+      color: var(--dim);
+      transition: all 0.15s;
+    }
+    .btn-why:hover { color: #a78bfa; border-color: #4338ca; }
   </style>
 </head>
 <body>
@@ -393,6 +436,7 @@
   </div>
 </div>
 
+<div id="score-popup"></div>
 <div id="toast"></div>
 
 <script>
@@ -537,7 +581,7 @@ function buildCatFilter() {
 }
 
 // ── Render helpers ────────────────────────────────────────────────
-function buildCard(item, context) {
+function buildCard(item, context, scoreData = null) {
   const card = document.createElement('div');
   card.className = 'item-card';
   card.dataset.itemId = item.id;
@@ -545,6 +589,7 @@ function buildCard(item, context) {
   const stars = '★'.repeat(Math.floor(item.rating)) + (item.rating % 1 >= 0.5 ? '½' : '') +
                 '☆'.repeat(5 - Math.ceil(item.rating));
   const tagsHtml = item.tags.map(t => `<span class="tag-${t}">${t.toUpperCase()}</span>`).join('');
+  const whyBtn   = scoreData ? `<button class="btn-why" title="Why was this recommended?">ⓘ Why?</button>` : '';
 
   card.innerHTML = `
     <div class="item-emoji">${item.emoji}</div>
@@ -556,10 +601,17 @@ function buildCard(item, context) {
     <div class="item-price">$${item.price.toFixed(2)}</div>
     <div class="item-rating">${stars} <span style="color:var(--dim)">(${item.rating})</span></div>
     <div class="item-actions">
-      <button class="btn-details" data-item="${item.id}" data-ctx="${context}">View Details</button>
+      ${whyBtn}
+      <button class="btn-details" data-item="${item.id}" data-ctx="${context}">Details</button>
       <button class="btn-buy"     data-item="${item.id}">Buy Now</button>
     </div>`;
 
+  if (scoreData) {
+    card.querySelector('.btn-why').addEventListener('click', (e) => {
+      e.stopPropagation();
+      showScorePopup(e.currentTarget, scoreData);
+    });
+  }
   card.querySelector('.btn-details').addEventListener('click', (e) => {
     e.stopPropagation();
     fireClick(item.id);
@@ -579,7 +631,7 @@ function renderAllProducts(items) {
   items.forEach(item => grid.appendChild(buildCard(item, 'catalogue')));
 }
 
-function renderItemGrid(gridId, itemIds, fallback) {
+function renderItemGrid(gridId, itemIds, fallback, scoresMap = null) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = '';
   const items = itemIds
@@ -592,7 +644,7 @@ function renderItemGrid(gridId, itemIds, fallback) {
     grid.appendChild(p);
     return 0;
   }
-  items.forEach(item => grid.appendChild(buildCard(item, gridId)));
+  items.forEach(item => grid.appendChild(buildCard(item, gridId, scoresMap ? (scoresMap[item.id] || null) : null)));
   return items.length;
 }
 
@@ -613,8 +665,11 @@ async function refreshRecommendations() {
   badge.textContent = 'Variant: ' + currentVariant;
   badge.style.display = 'inline-block';
 
-  const itemIds = (data.items || []).map(i => i.itemId);
-  const n = renderItemGrid('rec-grid', itemIds, '');
+  const recItems = data.items || [];
+  const scoresMap = {};
+  recItems.forEach(i => { scoresMap[i.itemId] = { score: i.score, components: i.components }; });
+  const itemIds = recItems.map(i => i.itemId);
+  const n = renderItemGrid('rec-grid', itemIds, '', scoresMap);
   document.getElementById('rec-count').textContent = n + ' items';
 
   if (n === 0) {
@@ -815,6 +870,55 @@ function showToast(msg, cls) {
   el.className   = (cls ? cls + ' ' : '') + 'show';
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = cls || ''; }, 4000);
+}
+
+// ── Score popup ───────────────────────────────────────────────────
+const scorePopupEl = document.getElementById('score-popup');
+let popupCloseHandler = null;
+
+function showScorePopup(btn, scoreData) {
+  const { score, components } = scoreData;
+  const c = components || {};
+  const signals = [
+    { label: 'Session',    raw: c.sessionScore    || 0, weight: 0.40, color: '#6366f1' },
+    { label: 'Content',    raw: c.contentScore    || 0, weight: 0.35, color: '#a855f7' },
+    { label: 'Popularity', raw: c.popularityScore || 0, weight: 0.15, color: '#10b981' },
+    { label: 'Recency',    raw: c.recencyScore    || 0, weight: 0.10, color: '#f59e0b' },
+  ];
+  const rows = signals.map(s => {
+    const pct = Math.round(s.raw * 100);
+    return `<div class="why-row">
+      <span class="why-label">${s.label}</span>
+      <div class="why-bar-track"><div class="why-bar-fill" style="width:${pct}%;background:${s.color}"></div></div>
+      <span class="why-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+
+  scorePopupEl.innerHTML =
+    `<div class="why-title">Why recommended?</div>${rows}` +
+    `<div class="why-composite">composite score: ${((score || 0) * 100).toFixed(1)}%</div>` +
+    `<div class="why-note">weighted blend: session·0.40 + content·0.35 + pop·0.15 + recency·0.10</div>`;
+
+  // Position above the button, clamped to viewport
+  const r = btn.getBoundingClientRect();
+  const W = window.innerWidth;
+  let left = r.left + r.width / 2 - 112;
+  if (left + 224 > W - 12) left = W - 236;
+  if (left < 8) left = 8;
+  const top = Math.max(8, r.top - 210);
+
+  scorePopupEl.style.left = left + 'px';
+  scorePopupEl.style.top  = top  + 'px';
+  scorePopupEl.classList.add('visible');
+
+  if (popupCloseHandler) document.removeEventListener('click', popupCloseHandler);
+  popupCloseHandler = (e) => {
+    if (!scorePopupEl.contains(e.target)) {
+      scorePopupEl.classList.remove('visible');
+      document.removeEventListener('click', popupCloseHandler);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', popupCloseHandler), 10);
 }
 
 // ── Utilities ─────────────────────────────────────────────────────
