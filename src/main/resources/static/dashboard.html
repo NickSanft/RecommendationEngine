@@ -320,6 +320,62 @@
     }
     #toast.show  { opacity: 1; transform: translateY(0); }
     #toast.error { border-left-color: #ef4444; }
+
+    /* ── Rich Tooltip System ──────────────────────────────────────── */
+    .arch-node[data-tt] { cursor: help; }
+    .arch-node[data-tt]:hover { border-color: #4338ca; box-shadow: 0 0 0 2px rgba(99,102,241,0.18); }
+
+    .glossary-term {
+      border-bottom: 1px dashed #4a5568;
+      cursor: help;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .glossary-term:hover { border-bottom-color: #a78bfa; color: #c4b5fd; }
+
+    #rich-tt {
+      position: fixed;
+      z-index: 10000;
+      width: 300px;
+      background: #13151f;
+      border: 1px solid #4338ca;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.75), 0 0 0 1px rgba(99,102,241,0.1);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
+      transition: opacity 0.16s, transform 0.16s;
+    }
+    #rich-tt.visible { opacity: 1; transform: translateY(0) scale(1); }
+    .tt-header {
+      padding: 12px 16px 10px;
+      border-bottom: 1px solid #1e2235;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .tt-tag {
+      font-size: 0.61rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; padding: 2px 7px; border-radius: 4px;
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .tt-tag.arch    { background: #312e81; color: #a5b4fc; }
+    .tt-tag.concept { background: #064e3b; color: #6ee7b7; }
+    .tt-title { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; line-height: 1.3; }
+    .tt-body-wrap { padding: 11px 16px 14px; display: flex; flex-direction: column; gap: 9px; }
+    .tt-body { font-size: 0.77rem; color: #94a3b8; line-height: 1.6; }
+    .tt-why {
+      font-size: 0.75rem; color: #a78bfa; line-height: 1.55;
+      padding: 8px 10px;
+      background: rgba(99,102,241,0.07);
+      border-radius: 6px;
+      border-left: 2px solid #6366f1;
+    }
+    .tt-why b { color: #c4b5fd; }
+    .tt-file {
+      font-size: 0.69rem; color: #475569;
+      font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
+    }
   </style>
 </head>
 <body>
@@ -382,22 +438,22 @@
     <div>
       <div class="arch-section-title">Ingestion Layer</div>
       <div class="arch-flow">
-        <div class="arch-node">
+        <div class="arch-node" data-tt="ktor">
           <div class="arch-node-title"><span class="status-dot" id="dot-app"></span>Ktor HTTP :8080</div>
           <div class="arch-node-sub">Netty engine</div>
           <span class="arch-node-badge">Kotlin / JVM 23</span>
         </div>
         <div class="arch-arrow">→</div>
-        <div class="arch-node">
+        <div class="arch-node" data-tt="kafka">
           <div class="arch-node-title"><span class="status-dot" id="dot-kafka"></span>Kafka</div>
           <div class="arch-node-sub">user-events topic</div>
           <span class="arch-node-badge">kafka-clients 3.7</span>
         </div>
         <div class="arch-arrow">→</div>
-        <div class="arch-node">
+        <div class="arch-node" data-tt="event-processor">
           <div class="arch-node-title"><span class="status-dot" id="dot-processor"></span>EventProcessor</div>
-          <div class="arch-node-sub">Kotlin Flow consumer</div>
-          <span class="arch-node-badge">SupervisorScope</span>
+          <div class="arch-node-sub"><span class="glossary-term" data-tt="concept-flow">Kotlin Flow</span> consumer</div>
+          <span class="arch-node-badge"><span class="glossary-term" data-tt="concept-supervisor">SupervisorScope</span></span>
         </div>
       </div>
     </div>
@@ -405,21 +461,21 @@
     <div>
       <div class="arch-section-title">State &amp; Learning Layer</div>
       <div class="arch-flow">
-        <div class="arch-node">
+        <div class="arch-node" data-tt="redis">
           <div class="arch-node-title"><span class="status-dot" id="dot-redis"></span>Redis</div>
           <div class="arch-node-sub">Sessions · Features · Popularity</div>
-          <span class="arch-node-badge">Lettuce coroutines</span>
+          <span class="arch-node-badge"><span class="glossary-term" data-tt="concept-lettuce">Lettuce coroutines</span></span>
         </div>
         <div class="arch-arrow">↔</div>
-        <div class="arch-node">
+        <div class="arch-node" data-tt="online-fm">
           <div class="arch-node-title">OnlineFM</div>
-          <div class="arch-node-sub">AdaGrad SGD k=16</div>
+          <div class="arch-node-sub"><span class="glossary-term" data-tt="concept-adagrad">AdaGrad SGD</span> k=<span class="glossary-term" data-tt="concept-k16">16</span></div>
           <span class="arch-node-badge">Custom Kotlin</span>
         </div>
         <div class="arch-arrow">↔</div>
-        <div class="arch-node">
+        <div class="arch-node" data-tt="session-decay">
           <div class="arch-node-title">SessionDecayJob</div>
-          <div class="arch-node-sub">Exp decay · 15 min sweep</div>
+          <div class="arch-node-sub"><span class="glossary-term" data-tt="concept-decay">Exp decay</span> · 15 min sweep</div>
           <span class="arch-node-badge">t½ = 4 h</span>
         </div>
       </div>
@@ -428,19 +484,19 @@
     <div>
       <div class="arch-section-title">Serving Layer</div>
       <div class="arch-flow">
-        <div class="arch-node">
+        <div class="arch-node" data-tt="scoring-engine">
           <div class="arch-node-title">ScoringEngine</div>
           <div class="arch-node-sub">Composite score</div>
-          <span class="arch-node-badge">session·0.4 + content·0.35 + pop·0.15 + recency·0.1</span>
+          <span class="arch-node-badge"><span class="glossary-term" data-tt="concept-composite">session·0.4 + content·0.35 + pop·0.15 + recency·0.1</span></span>
         </div>
         <div class="arch-arrow">→</div>
-        <div class="arch-node">
+        <div class="arch-node" data-tt="ab-assigner">
           <div class="arch-node-title">AbAssigner</div>
-          <div class="arch-node-sub">SHA-256 deterministic</div>
+          <div class="arch-node-sub"><span class="glossary-term" data-tt="concept-sha256">SHA-256 deterministic</span></div>
           <span class="arch-node-badge">Redis TTL 7 days</span>
         </div>
         <div class="arch-arrow">→</div>
-        <div class="arch-node">
+        <div class="arch-node" data-tt="rec-endpoint">
           <div class="arch-node-title">GET /api/v1/recommendations</div>
           <div class="arch-node-sub">Ranked · variant-tagged</div>
           <span class="arch-node-badge">JSON · kotlinx</span>
@@ -451,21 +507,21 @@
     <div>
       <div class="arch-section-title">Observability</div>
       <div class="arch-flow">
-        <div class="arch-node">
+        <div class="arch-node" data-tt="micrometer">
           <div class="arch-node-title">Micrometer</div>
           <div class="arch-node-sub">Events · Latency · FM updates</div>
           <span class="arch-node-badge">Prometheus registry</span>
         </div>
         <div class="arch-arrow">→</div>
-        <div class="arch-node">
+        <div class="arch-node" data-tt="metrics-endpoint">
           <div class="arch-node-title">GET /metrics</div>
           <div class="arch-node-sub">Prometheus text format</div>
           <span class="arch-node-badge">scrape interval: any</span>
         </div>
         <div class="arch-arrow">·</div>
-        <div class="arch-node">
+        <div class="arch-node" data-tt="sse">
           <div class="arch-node-title">SSE /events/stream</div>
-          <div class="arch-node-sub">replay=50 · 30s heartbeat</div>
+          <div class="arch-node-sub"><span class="glossary-term" data-tt="concept-replay">replay=50</span> · 30s heartbeat</div>
           <span class="arch-node-badge">Ktor SSE plugin</span>
         </div>
       </div>
@@ -543,7 +599,7 @@
       <div class="stat-card">
         <div class="stat-card-label">Running Loss</div>
         <div class="stat-card-value" id="m-loss">—</div>
-        <div class="stat-card-sub">EWMA |pred − label|</div>
+        <div class="stat-card-sub"><span class="glossary-term" data-tt="concept-ewma">EWMA</span> |pred − label|</div>
       </div>
       <div class="stat-card">
         <div class="stat-card-label">Last FM Update</div>
@@ -552,8 +608,8 @@
       </div>
       <div class="stat-card">
         <div class="stat-card-label">FM Config</div>
-        <div class="stat-card-value" style="font-size:1.1rem">k=16</div>
-        <div class="stat-card-sub">AdaGrad SGD · lr 0.01 · reg 0.001</div>
+        <div class="stat-card-value" style="font-size:1.1rem"><span class="glossary-term" data-tt="concept-k16">k=16</span></div>
+        <div class="stat-card-sub"><span class="glossary-term" data-tt="concept-adagrad">AdaGrad SGD</span> · lr 0.01 · reg 0.001</div>
       </div>
     </div>
 
@@ -989,6 +1045,188 @@ pollStats();
 pollHealth();
 setInterval(pollStats,  3_000);
 setInterval(pollHealth, 10_000);
+
+// ── Rich Tooltip System ────────────────────────────────────────────
+const TT_DATA = {
+  // ── Architecture Nodes ─────────────────────────────────────────
+  'ktor': {
+    tag:'HTTP Layer', tagCls:'arch', title:'Ktor HTTP Server',
+    body:'Kotlin-native async HTTP server running on Netty. Handles all inbound API calls — event ingestion, recommendations, health checks — and serves the dashboard HTML and SSE stream.',
+    why:'Built for Kotlin coroutines from the ground up — every handler <b>suspends</b>, never blocks a thread. A single JVM handles thousands of concurrent connections without thread-pool tuning.',
+    file:'Application.kt · routing/'
+  },
+  'kafka': {
+    tag:'Event Bus', tagCls:'arch', title:'Apache Kafka',
+    body:'Durable, ordered event log. Every click, view, purchase, and impression is produced as a JSON message to the <i>user-events</i> topic with guaranteed at-least-once delivery.',
+    why:'Decouples ingest from processing — the ML pipeline can lag behind or restart without losing events. Consumer offset replay lets the model backfill from history. Enables horizontal scaling via consumer groups.',
+    file:'kafka/KafkaProducerService.kt · KafkaConsumerService.kt'
+  },
+  'event-processor': {
+    tag:'Stream Consumer', tagCls:'arch', title:'EventProcessor',
+    body:'Kotlin coroutine that collects the Kafka Flow and fans each event out to SessionStore, FeatureStore, and OnlineFM.learn() — all three updated per event in a single pass.',
+    why:'Kotlin Flow provides built-in backpressure. SupervisorScope isolates failures — a Redis timeout won\'t crash the Kafka consumer loop. Structured concurrency makes lifecycle management explicit.',
+    file:'pipeline/EventProcessor.kt'
+  },
+  'redis': {
+    tag:'State Store', tagCls:'arch', title:'Redis',
+    body:'Three data structures: session vectors (hashes), item popularity (sorted sets via ZINCRBY), and feature metadata. All accessed via the async Lettuce client with coroutine extensions.',
+    why:'Sorted sets give O(log N) top-K popularity queries with ZREVRANGE. The Lettuce coroutine adapter avoids blocking threads on I/O, matching the async model of the rest of the pipeline.',
+    file:'redis/SessionStore.kt · FeatureStore.kt'
+  },
+  'online-fm': {
+    tag:'ML Model', tagCls:'arch', title:'Online Factorization Machine',
+    body:'Learns latent interaction vectors for (user, item, context) feature triples. Updated incrementally with every click and purchase — no batch retraining cycle needed.',
+    why:'FMs generalise matrix factorisation to arbitrary sparse features via pairwise dot products ⟨vᵢ,vⱼ⟩. Handles cold-start gracefully: new feature combinations get a score from related interactions rather than zero.',
+    file:'ml/OnlineFM.kt'
+  },
+  'session-decay': {
+    tag:'Background Job', tagCls:'arch', title:'SessionDecayJob',
+    body:'Scheduled coroutine running every 15 minutes. Scans all <i>session:*:vector</i> Redis keys and multiplies each component by e^(−λΔt) for the time elapsed since last update.',
+    why:'Exponential decay encodes recency directly in the session vector — a click 4 hours ago is half as influential as a click right now. Old sessions fade organically; no hard expiry date needed.',
+    file:'pipeline/SessionDecayJob.kt'
+  },
+  'scoring-engine': {
+    tag:'Ranking', tagCls:'arch', title:'ScoringEngine',
+    body:'Combines four per-item signals into a composite score: session affinity (0.40), FM content (0.35), popularity (0.15), and recency (0.10). Returns a ranked, deduplicated candidate list.',
+    why:'No single signal is sufficient alone — FM content is powerful but cold for new users; popularity prevents obscure results; session affinity captures in-session intent; recency keeps the feed fresh.',
+    file:'ml/ScoringEngine.kt'
+  },
+  'ab-assigner': {
+    tag:'Experimentation', tagCls:'arch', title:'A/B Assigner',
+    body:'Deterministically assigns each userId to an experiment variant by hashing userId + experiment salt with SHA-256, then bucketing the result into configured percentage ranges.',
+    why:'Pure computation — no database lookup for sticky assignment. The same user always lands in the same bucket with uniform distribution. Changing the salt re-randomises all assignments without touching user records.',
+    file:'routing/AbAssigner.kt'
+  },
+  'rec-endpoint': {
+    tag:'REST API', tagCls:'arch', title:'GET /api/v1/recommendations',
+    body:'The serving endpoint. Returns a scored, ranked list for a userId, annotating each item with its score components (session/content/popularity/recency) and the user\'s A/B variant.',
+    why:'Stateless — all state lives in Redis. Sub-50ms p50 latency because FM scoring is in-process dot products on k=16 vectors, not a round-trip to an external model server.',
+    file:'routing/RecommendationRoutes.kt'
+  },
+  'micrometer': {
+    tag:'Observability', tagCls:'arch', title:'Micrometer Metrics',
+    body:'Instruments the JVM and application with counters (events processed), timer histograms (recommendation latency), and gauges (FM update count, running loss).',
+    why:'Vendor-neutral facade — swap the Prometheus registry for Datadog, InfluxDB, or CloudWatch without changing a single instrumentation call. p50/p95/p99 latencies come free from histogram buckets.',
+    file:'metrics/MetricsRegistry.kt'
+  },
+  'metrics-endpoint': {
+    tag:'Scrape Target', tagCls:'arch', title:'GET /metrics',
+    body:'Prometheus text-format exposition endpoint. Exposes JVM memory, GC stats, HTTP request counts, and all custom application metrics for any Prometheus-compatible scraper.',
+    why:'Standard format drops straight into any existing monitoring stack — Grafana, AlertManager, or cloud-native Prometheus services — with zero configuration changes on the scraper side.',
+    file:'metrics/MetricsRegistry.kt'
+  },
+  'sse': {
+    tag:'Real-time Feed', tagCls:'arch', title:'SSE Event Stream',
+    body:'Server-Sent Events endpoint backed by a SharedFlow with a replay buffer of 50. New dashboard clients immediately receive the last 50 events on connect, then receive live updates.',
+    why:'Simpler than WebSocket for one-way server→browser streams — no upgrade handshake, works over HTTP/1.1, automatic reconnect via the browser EventSource API. SharedFlow fan-out means unlimited concurrent clients at near-zero additional cost.',
+    file:'dashboard/DashboardRoutes.kt · EventBroadcaster.kt'
+  },
+
+  // ── Concept Glossary ───────────────────────────────────────────
+  'concept-adagrad': {
+    tag:'ML Concept', tagCls:'concept', title:'AdaGrad SGD',
+    body:'Adaptive Gradient Descent. Maintains a per-parameter sum of squared gradients and divides each update by its square root — frequently updated parameters get smaller steps; rare features get larger ones.',
+    why:'Standard SGD uses one global learning rate, which overshoots sparse features or stalls on dense ones. In recommendation data, 99% of (user, item) pairs are unseen, making per-parameter adaptation critical.'
+  },
+  'concept-k16': {
+    tag:'Hyperparameter', tagCls:'concept', title:'k = 16 Latent Factors',
+    body:'Each feature is represented as a 16-dimensional vector. Pairwise interaction scores are computed as ⟨vᵢ, vⱼ⟩ = Σₗ vᵢₗ·vⱼₗ, summed over all 16 dimensions.',
+    why:'k=16 balances expressiveness with inference speed — FM scoring over 50 candidates takes microseconds in-process. Higher k captures richer interactions but needs more training data and is slower to serve.'
+  },
+  'concept-sha256': {
+    tag:'Algorithm', tagCls:'concept', title:'SHA-256 Deterministic Bucketing',
+    body:'hash(userId + experimentSalt) → 256-bit digest → first 4 bytes as uint32 → mod 100 → bucket 0–99. Each variant\'s configured percentage range maps to a set of buckets.',
+    why:'Purely stateless — no database lookup needed. The same user always lands in the same bucket (sticky assignment). Changing the experiment salt re-randomises all assignments without touching any user records.'
+  },
+  'concept-flow': {
+    tag:'Kotlin', tagCls:'concept', title:'Kotlin Flow',
+    body:'Cold, backpressure-aware async stream built on coroutines. Unlike RxJava Observables, Flow\'s <i>collect {}</i> suspends the calling coroutine rather than blocking a thread while waiting for items.',
+    why:'Backpressure is built in: if EventProcessor consumes slower than Kafka produces, the producer suspends naturally. No manual buffer tuning, thread-pool sizing, or onBackpressureDrop() needed.'
+  },
+  'concept-supervisor': {
+    tag:'Kotlin', tagCls:'concept', title:'SupervisorScope',
+    body:'A coroutine scope where child failures are independent — one failing child does not cancel its siblings or the parent. The failed child can be restarted without affecting the rest.',
+    why:'In the event pipeline, a Redis timeout in SessionStore should not kill the Kafka consumer loop. SupervisorScope isolates the failure to just that branch, allowing targeted retry logic.'
+  },
+  'concept-lettuce': {
+    tag:'Redis Client', tagCls:'concept', title:'Lettuce Coroutines',
+    body:'Lettuce is a non-blocking Redis client built on Netty. The Kotlin coroutines extension wraps its Reactive (Project Reactor) API so you can <i>await</i> Redis calls without blocking threads.',
+    why:'Avoids the reactive pyramid of doom — instead of chaining Mono/Flux operators, you write sequential coroutine code that reads like blocking code but never parks a thread.'
+  },
+  'concept-ewma': {
+    tag:'Statistics', tagCls:'concept', title:'EWMA — Exponentially Weighted Moving Average',
+    body:'Running average weighting recent observations more heavily: newLoss = α × |pred − label| + (1−α) × prevLoss. α = 0.05 here, so roughly the last 20 samples dominate.',
+    why:'Instantaneous loss is noisy (high single-sample variance). EWMA reveals the true learning trend without storing a full sliding window of samples in memory.'
+  },
+  'concept-decay': {
+    tag:'Algorithm', tagCls:'concept', title:'Exponential Session Decay',
+    body:'Session vector weights decay by factor e^(−λΔt) where λ = ln(2) / 14400 s. A click 4 hours ago has exactly half the influence of a click right now.',
+    why:'Encodes recency directly into the session embedding — no separate per-item recency score is needed. Old sessions fade to zero organically rather than expiring abruptly at a hard TTL cutoff.'
+  },
+  'concept-replay': {
+    tag:'Kotlin', tagCls:'concept', title:'SharedFlow replay=50',
+    body:'A SharedFlow configured with replay=50 stores the last 50 emitted values in a ring buffer. New subscribers receive these immediately on connect, then receive live emissions going forward.',
+    why:'Prevents dashboard clients from missing events during tab switches or reconnects. The Kafka consumer emits to the SharedFlow once; all SSE connections fan out from it at essentially zero additional cost per client.'
+  },
+  'concept-composite': {
+    tag:'Scoring', tagCls:'concept', title:'Composite Scoring Weights',
+    body:'session·0.40 + content·0.35 + popularity·0.15 + recency·0.10. Each signal is normalised to [0,1] before blending so the weights reflect relative importance, not raw magnitudes.',
+    why:'Weights are tunable hyperparameters — in production these would be optimised via offline A/B replay or Bayesian optimisation against click-through rate. Current weights prioritise in-session intent over global popularity.'
+  },
+};
+
+(function initTooltips() {
+  const tt = document.createElement('div');
+  tt.id = 'rich-tt';
+  tt.innerHTML =
+    '<div class="tt-header">' +
+      '<span id="tt-tag" class="tt-tag"></span>' +
+      '<span id="tt-title" class="tt-title"></span>' +
+    '</div>' +
+    '<div class="tt-body-wrap">' +
+      '<div id="tt-body" class="tt-body"></div>' +
+      '<div id="tt-why"  class="tt-why"></div>' +
+      '<div id="tt-file" class="tt-file"></div>' +
+    '</div>';
+  document.body.appendChild(tt);
+
+  let hideTimer = null;
+
+  function show(anchor) {
+    const d = TT_DATA[anchor.dataset.tt];
+    if (!d) return;
+    clearTimeout(hideTimer);
+
+    document.getElementById('tt-tag').textContent   = d.tag;
+    document.getElementById('tt-tag').className     = 'tt-tag ' + d.tagCls;
+    document.getElementById('tt-title').textContent = d.title;
+    document.getElementById('tt-body').innerHTML    = d.body;
+
+    const whyEl  = document.getElementById('tt-why');
+    const fileEl = document.getElementById('tt-file');
+    whyEl.innerHTML     = d.why  || '';
+    whyEl.style.display = d.why  ? '' : 'none';
+    fileEl.textContent  = d.file ? '📄 ' + d.file : '';
+    fileEl.style.display = d.file ? '' : 'none';
+
+    // Position: prefer below anchor, flip above if near bottom edge
+    const r  = anchor.getBoundingClientRect();
+    const W  = window.innerWidth, H = window.innerHeight;
+    let left = r.left;
+    let top  = r.bottom + 10;
+    if (left + 310 > W - 12) left = Math.max(8, W - 312);
+    if (top  + 260 > H - 12) top  = Math.max(8, r.top - 264);
+
+    tt.style.left = left + 'px';
+    tt.style.top  = top  + 'px';
+    tt.classList.add('visible');
+  }
+
+  function hide() { hideTimer = setTimeout(() => tt.classList.remove('visible'), 150); }
+
+  document.addEventListener('mouseover', e => { const el = e.target.closest('[data-tt]'); if (el) show(el); });
+  document.addEventListener('mouseout',  e => { const el = e.target.closest('[data-tt]'); if (el) hide(); });
+})();
 </script>
 </body>
 </html>
